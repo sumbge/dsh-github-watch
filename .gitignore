@@ -1,0 +1,8 @@
+node_modules/
+config.json
+registry.json
+_af_desktop_cli.mjs
+*.log
+.DS_Store
+__pycache__/
+*.pyc

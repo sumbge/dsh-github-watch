@@ -1,0 +1,6 @@
+# Adds one host-level row. The row starts the API that the Settings page reads;
+# the page itself comes from the client half declared in package.json under
+# dsh.client, which DSH serves as a browser bundle.
+- insert:
+    - id: github-watch
+      name: 'dsh-github-watch'
