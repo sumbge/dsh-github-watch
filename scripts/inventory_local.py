@@ -382,6 +382,42 @@ def tool_installs() -> list[dict]:
             add(c, "npm -g", d.get("name") or os.path.basename(c),
                 d.get("version") or "", m.group(1) if m else "")
 
+    # npx: <Local>/npm-cache/_npx/<hash>/ holds one package tree per invocation.
+    # Only the package named in that tree's own dependencies was actually run —
+    # everything else in its node_modules is a transitive dependency and would
+    # bury the list. These are caches, so a directory can vanish between scans;
+    # that is reported as-is rather than hidden.
+    npx_root = os.path.join(localappdata, "npm-cache", "_npx")
+    if os.path.isdir(npx_root):
+        for entry in sorted(os.listdir(npx_root)):
+            base = os.path.join(npx_root, entry)
+            manifest = os.path.join(base, "package.json")
+            if not os.path.isfile(manifest):
+                continue
+            try:
+                with open(manifest, "r", encoding="utf-8", errors="replace") as fh:
+                    spec = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            deps = spec.get("dependencies") or {}
+            for pkg_name in deps:
+                pkg_dir = os.path.join(base, "node_modules", *pkg_name.split("/"))
+                pj = os.path.join(pkg_dir, "package.json")
+                version, repo = "", ""
+                if os.path.isfile(pj):
+                    try:
+                        with open(pj, "r", encoding="utf-8", errors="replace") as fh:
+                            d = json.load(fh)
+                        version = d.get("version") or ""
+                        r = d.get("repository")
+                        url = r if isinstance(r, str) else (r or {}).get("url", "")
+                        m = re.search(r"github\.com[/:]([\w.-]+/[\w.-]+?)(?:\.git)?$", str(url).strip())
+                        if m:
+                            repo = m.group(1)
+                    except (OSError, ValueError):
+                        pass
+                add(pkg_dir, "npx cache", pkg_name, version, repo)
+
     return out
 
 
@@ -394,7 +430,7 @@ def main() -> int:
     print(f"DSH 插件（profile node_modules 里声明 dsh.bundle/client 的）: {len(plugins)} 个")
 
     tools_found = tool_installs()
-    print(f"包管理器装的工具（uv tool / pipx / npm -g）: {len(tools_found)} 个\n")
+    print(f"包管理器装的工具（uv tool / pipx / npm -g / npx）: {len(tools_found)} 个\n")
 
     for p in projects:
         p["size_mb"] = dir_size_mb(p["path"])
