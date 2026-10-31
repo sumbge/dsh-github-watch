@@ -230,6 +230,11 @@ async function ghStatusUncached() {
   if (res.code !== 0) {
     // Logged out is a normal state, not an error: gh exits non-zero and says so
     // on stderr. Only a parse failure below is worth calling broken.
+    //
+    // The fallback text is not decoration. A Windows build of gh exits 1 with
+    // *nothing* on either stream when no account is configured — verified on
+    // windows-latest — and an empty `error` left the page unable to say anything
+    // at all: not who is logged in, not why nobody is.
     return {
       available: true,
       path: GH,
@@ -237,7 +242,8 @@ async function ghStatusUncached() {
       accounts: [],
       active: null,
       rate: null,
-      error: (res.err || res.out || '').trim().slice(0, 300),
+      error: (res.err || res.out || '').trim().slice(0, 300)
+        || 'gh 已安装，但没有已登录的账号：在终端里跑 gh auth login',
     }
   }
   let hosts = {}
