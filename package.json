@@ -30,8 +30,12 @@
     "icon.svg",
     "README.md",
     "LICENSE",
-    "lib/*.mjs"
+    "lib/*.mjs",
+    "test/*.mjs"
   ],
+  "scripts": {
+    "test": "node --test test/parse.test.mjs test/pipeline.test.mjs test/routes.test.mjs test/render.test.mjs"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

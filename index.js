@@ -160,10 +160,10 @@ const GH = resolveGh()
  *     account card on a second request in parallel.
  */
 const GH_TTL_MS = 60000
-const ghCache = { at: 0, value: null, inflight: null, scheduled: false }
+export const ghCache = { at: 0, value: null, inflight: null, scheduled: false }
 
 /** Start (or join) a refresh. Callers that cannot wait should not call this. */
-function ghRefresh() {
+export function ghRefresh() {
   if (ghCache.inflight) return ghCache.inflight
   ghCache.inflight = ghStatusUncached()
     .then((value) => {
@@ -183,7 +183,7 @@ function ghRefresh() {
  * page claim "gh not installed", which is a different statement from "not read
  * yet" and would be wrong for the first second after a restart.
  */
-function ghPeek() {
+export function ghPeek() {
   if (!ghCache.value || Date.now() - ghCache.at >= GH_TTL_MS) {
     // Fire and forget, and deferred on purpose: creating the two processes costs
     // ~80 ms on Windows before either one has said a word, and paying that inside
@@ -201,7 +201,7 @@ function ghPeek() {
   return ghCache.value
 }
 
-async function ghStatus(options = {}) {
+export async function ghStatus(options = {}) {
   const fresh = options.fresh === true
   if (!fresh && ghCache.value && Date.now() - ghCache.at < GH_TTL_MS) {
     return ghCache.value
@@ -210,7 +210,7 @@ async function ghStatus(options = {}) {
 }
 
 /** Drop the memoized answer, e.g. right after a login completes. */
-function forgetGhStatus() {
+export function forgetGhStatus() {
   ghCache.at = 0
   ghCache.value = null
 }
@@ -239,7 +239,8 @@ async function ghStatusUncached() {
       rate: null,
       error: (res.err || res.out || '').trim().slice(0, 300),
     }
-  }  let hosts = {}
+  }
+  let hosts = {}
   try {
     hosts = JSON.parse(res.out).hosts || {}
   } catch (err) {
@@ -565,7 +566,7 @@ async function readText(path) {
  * The prose above the table is for a human reading the file; the table is the
  * part worth parsing.
  */
-function parseReport(md) {
+export function parseReport(md) {
   if (!md) return { generatedAt: null, counts: null, rows: [] }
 
   const generatedAt = (md.match(/生成时间：([^｜\n]+)/) || [])[1]?.trim() || null
@@ -664,7 +665,7 @@ async function readDescriptions() {
  * with an ellipsis would be worse than one long line: the point of the fold is
  * to hide detail, not to mangle the sentence that carries the meaning.
  */
-function splitBlurb(text) {
+export function splitBlurb(text) {
   const s = String(text || '').trim()
   if (!s) return { lead: '', rest: '' }
 
@@ -1681,7 +1682,7 @@ async function snapshot() {
   }
 }
 
-const route = {
+export const route = {
   kind: 'prefix',
   path: '/github-watch',
   handler: async (req, res, next) => {

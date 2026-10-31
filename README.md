@@ -218,6 +218,42 @@ Python is **not** required. It is mentioned only where it is relevant: `uv tool`
 and `pipx` installs are inspected by reading their metadata off disk, and a
 version gate is decided by the interpreter recorded in that venv's `pyvenv.cfg`.
 
+No dependency of ours needs installing. `git` is the one exception, and even it
+only degrades a single row: without it the git projects report `检查失败` while
+everything else still resolves through the HTTP APIs.
+
+## Tests
+
+```bash
+npm test
+```
+
+24 tests, no dependencies, no network:
+
+| File | Covers |
+|---|---|
+| `test/parse.test.mjs` | `parseReport` (every kind, not just the enumerated ones) and `splitBlurb` |
+| `test/pipeline.test.mjs` | the inventory and build steps end to end against a fake disk in a temp directory |
+| `test/routes.test.mjs` | the HTTP endpoints, including that the page paints before the GitHub account has been read |
+| `test/render.test.mjs` | six headless renders of `client.js`, so a broken hook order fails here instead of showing a blank page |
+
+They never touch `~/.dsh-github-watch`: helper `isolate()` points
+`DSH_GITHUB_WATCH_DIR` at a fresh temp directory before the step modules are
+imported, which matters because those modules create the directory at import
+time.
+
+CI runs the same command on `windows-latest` against Node 18/20/22/24.
+
+## Platforms
+
+Windows only, and the CI matrix says so. The scanner hard-codes Windows
+locations by design: `%APPDATA%\npm` for global packages, `%LOCALAPPDATA%\pipx`
+and `%LOCALAPPDATA%\Programs` for stores and downloaded binaries, `uv.exe` under
+`%APPDATA%\uv\tools`, and `C:\Program Files\GitHub CLI\gh.exe` as the last
+resort for `gh`. On macOS or Linux those lookups find nothing, so you get an
+empty list rather than a wrong one — but "empty" is not what you installed it
+for.
+
 ## License
 
 MIT

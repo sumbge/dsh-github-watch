@@ -1,0 +1,30 @@
+name: test
+
+# Windows only, on purpose. The scanner reads %APPDATA%, %LOCALAPPDATA%,
+# Program Files and the uv/pipx/npm -g layouts; a green run on Linux would prove
+# nothing about the machine this actually ships to. See README "Platforms".
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No `npm ci`: the package has no dependencies, so there is nothing to
+      # install and nothing to cache. That is a feature — a fresh clone is
+      # runnable.
+      - name: Run the tests
+        run: npm test
