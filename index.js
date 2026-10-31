@@ -303,7 +303,19 @@ async function ghStatusUncached() {
     // surface as an unhandled rejection when gh is installed but logged out.
     rateP.catch(() => {})
   }
-  return { available: true, path: GH, loggedIn: Boolean(active), active, accounts, rate, error: '' }
+  // An empty account list is a third outcome, distinct from "gh missing" and
+  // "gh failed": gh exits 0 on a machine with no account configured and prints
+  // `{"hosts":{}}`. Returning a blank `error` here is what made the page unable
+  // to say anything at all — not who is logged in, not why nobody is.
+  return {
+    available: true,
+    path: GH,
+    loggedIn: Boolean(active),
+    active,
+    accounts,
+    rate,
+    error: active ? '' : 'gh 已安装，但没有已登录的账号：在终端里跑 gh auth login',
+  }
 }
 
 /**
