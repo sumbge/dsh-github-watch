@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-watch",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "DSH Settings page that lists every GitHub project on this machine, checks upstream for updates, and can update, mute or delete them",
   "keywords": [
