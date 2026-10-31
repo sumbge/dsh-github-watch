@@ -1,7 +1,7 @@
 /**
  * GitHub Watch — host half.
  *
- * The checking is not this plugin's job: `github-watch\check.py` already does it
+ * The checking is not this plugin's job: `lib/check.mjs` already does it
  * (git ls-remote / GitHub API / npm, one row per repository) and a Windows
  * scheduled task runs it daily at 09:30. This row exists so the result is
  * *visible inside DSH* — it reads the two files that script writes and serves
@@ -13,7 +13,7 @@
  * it says when the data was measured, not when you happened to look.
  */
 import { readFile, stat, readdir, rm, writeFile, rename } from 'node:fs/promises'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -38,6 +38,13 @@ export const inject = []
  */
 const PLUGIN_DIR = dirname(fileURLToPath(import.meta.url))
 
+// The scan steps ship inside the package and are run from there. They are NOT
+// copied into the data directory: an earlier version ran `join(WATCH_DIR, file)`
+// and only worked on machines where somebody had hand-copied the step files into
+// ~/.dsh-github-watch first. On a clean install that directory is empty, so every
+// step answered ENOENT and the page said "暂无报告" forever.
+const LIB_DIR = join(PLUGIN_DIR, 'lib')
+
 function resolveWatchDir() {
   const fromEnv = process.env.DSH_GITHUB_WATCH_DIR
   if (fromEnv) return fromEnv
@@ -51,37 +58,51 @@ function resolveWatchDir() {
 const WATCH_DIR = resolveWatchDir()
 
 /**
- * Which interpreter runs the scan scripts.
+ * Make sure the data directory exists before anything tries to write into it.
  *
- * `spawn('python', ...)` is not reliable on Windows: the Microsoft Store
- * alias `%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe` sits on PATH ahead of
- * a real install and exits with "Python was not found", so every step would
- * fail with a message about the Store instead of about the scan. Resolution
- * order, first hit wins:
- *
- *   1. DSH_GITHUB_WATCH_PYTHON  — explicit override
- *   2. config.json `python`     — the same file that supplies watchDir
- *   3. python3 / python         — whatever PATH really resolves to
+ * A fresh install has no ~/.dsh-github-watch, and every script opens its output
+ * for writing on the last line — so without this the whole scan dies with
+ * FileNotFoundError after doing all the work. Cheap, idempotent, and called on
+ * the path that writes rather than at module load (a plugin that creates
+ * directories just by being imported is rude).
  */
-function resolvePython() {
-  const fromEnv = process.env.DSH_GITHUB_WATCH_PYTHON
-  if (fromEnv) return fromEnv
+function ensureDataDir() {
   try {
-    const cfg = JSON.parse(readFileSync(join(PLUGIN_DIR, 'config.json'), 'utf8'))
-    if (cfg && typeof cfg.python === 'string' && cfg.python) return cfg.python
-  } catch { /* no config yet */ }
-  for (const name of ['python3', 'python']) {
-    const found = whichSync(name)
-    if (found) return found
-  }
-  return 'python'
+    mkdirSync(WATCH_DIR, { recursive: true })
+  } catch { /* a read-only data dir fails later, with a better message */ }
 }
 
-/** `where`-style lookup: returns the first non-Store-alias hit, or ''. */
+// The profile whose package.json owns the installed plugins. `pnpm add` has to
+// run there: adding a package from anywhere else edits the wrong manifest.
+//
+// Not the literal `~/.dsh/profiles/desktop`: DSH exports DSH_PROFILE_DIR to
+// every process it starts, so a machine whose profile is named something else
+// (or a second profile) resolves correctly without editing this file. The
+// literal path is only the fallback for a call made outside a DSH process.
+const PROFILE_DIR = process.env.DSH_PROFILE_DIR
+  || join(homedir(), '.dsh', 'profiles', process.env.DSH_PROFILE || 'desktop')
+
+// pnpm is not on PATH in this deployment: DSH ships its own copy under
+// resources/runtime. `process.execPath` is the host executable (DeepSeek
+// Harness.exe), so its directory is the install root the runtime hangs off.
+// Spawning bare `pnpm` here answers ENOENT, which reads as "update failed" for
+// a reason that has nothing to do with the package.
+const DSH_ROOT = dirname(process.execPath)
+const PNPM_CLI = join(DSH_ROOT, 'resources', 'runtime', 'primary-runtime',
+  'dependencies', 'pnpm', 'bin', 'pnpm.cjs')
+const NODE_EXE = join(DSH_ROOT, 'resources', 'runtime', 'primary-runtime',
+  'dependencies', 'node', 'bin', 'node.exe')
+
+/**
+ * `where`-style lookup: returns the first hit, or ''.
+ *
+ * Kept for the GitHub CLI, which really is an external program. Nothing else here
+ * needs it any more: the scan steps run on `process.execPath`, which is by
+ * definition the Node that is already running this file.
+ */
 function whichSync(name) {
   const raw = process.env.PATH || process.env.Path || ''
   const exts = (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';')
-  const storeAlias = /\\WindowsApps\\python3?\.exe$/i
   const hits = []
   for (const dir of raw.split(';')) {
     if (!dir.trim()) continue
@@ -90,30 +111,345 @@ function whichSync(name) {
       if (existsSync(candidate)) hits.push(candidate)
     }
   }
-  // Prefer a real interpreter; fall back to the alias only if it is all there is.
-  return hits.find((p) => !storeAlias.test(p)) || hits[0] || ''
+  return hits[0] || ''
 }
 
-const PYTHON = resolvePython()
+/**
+ * Where the GitHub CLI lives.
+ *
+ * Same resolution shape as the interpreter above, plus the installer's default
+ * location: `winget install GitHub.cli` drops gh.exe under Program Files without
+ * touching PATH for the host that is already running, so a pure PATH lookup
+ * would report "no gh" on a machine that plainly has one.
+ */
+function resolveGh() {
+  const fromEnv = process.env.DSH_GITHUB_WATCH_GH
+  if (fromEnv) return fromEnv
+  try {
+    const cfg = JSON.parse(readFileSync(join(PLUGIN_DIR, 'config.json'), 'utf8'))
+    if (cfg && typeof cfg.gh === 'string' && cfg.gh) return cfg.gh
+  } catch { /* no config yet */ }
+  const onPath = whichSync('gh')
+  if (onPath) return onPath
+  const known = join(process.env.ProgramFiles || 'C:\\Program Files', 'GitHub CLI', 'gh.exe')
+  return existsSync(known) ? known : ''
+}
+
+const GH = resolveGh()
+
+/**
+ * Account state, read from the CLI rather than from a token held by this plugin.
+ *
+ * The credential never passes through here. `gh auth status` reports the login,
+ * where the credential is stored and which scopes it carries; `gh api rate_limit`
+ * reports the quota. That is everything the page needs to show and none of it is
+ * a secret — asking for `gh auth token` would put a live credential into an HTTP
+ * response for no gain.
+ *
+ * Cost, measured on this machine: `gh auth status` 1.44 s, `gh api rate_limit`
+ * 1.57 s, everything else in the snapshot 16 ms. gh verifies the token against
+ * the API before answering, so neither call is local no matter how it is spelled.
+ * That shapes the whole design here:
+ *
+ *   - the two calls run concurrently, not in sequence (2.9 s → ~1.6 s);
+ *   - the answer is memoized, because it changes on the scale of minutes;
+ *   - and crucially the snapshot does NOT wait for it. The project rows are
+ *     local files and have nothing to do with GitHub, so they must not be held
+ *     hostage by a network round trip. `ghPeek()` hands back whatever is known
+ *     right now and refreshes behind the caller's back; the page fetches the
+ *     account card on a second request in parallel.
+ */
+const GH_TTL_MS = 60000
+const ghCache = { at: 0, value: null, inflight: null, scheduled: false }
+
+/** Start (or join) a refresh. Callers that cannot wait should not call this. */
+function ghRefresh() {
+  if (ghCache.inflight) return ghCache.inflight
+  ghCache.inflight = ghStatusUncached()
+    .then((value) => {
+      ghCache.at = Date.now()
+      ghCache.value = value
+      return value
+    })
+    .catch(() => ghCache.value)
+    .finally(() => { ghCache.inflight = null })
+  return ghCache.inflight
+}
+
+/**
+ * Last known account state, without waiting for a fresh one.
+ *
+ * Returns null when nothing has been read yet — an empty object would make the
+ * page claim "gh not installed", which is a different statement from "not read
+ * yet" and would be wrong for the first second after a restart.
+ */
+function ghPeek() {
+  if (!ghCache.value || Date.now() - ghCache.at >= GH_TTL_MS) {
+    // Fire and forget, and deferred on purpose: creating the two processes costs
+    // ~80 ms on Windows before either one has said a word, and paying that inside
+    // the response that merely mentioned the account would defeat the point.
+    // `ghRefresh()` is idempotent, so a peek that runs before the timer fires
+    // joins the same read instead of starting a second one.
+    if (!ghCache.scheduled) {
+      ghCache.scheduled = true
+      setImmediate(() => {
+        ghCache.scheduled = false
+        ghRefresh()
+      })
+    }
+  }
+  return ghCache.value
+}
+
+async function ghStatus(options = {}) {
+  const fresh = options.fresh === true
+  if (!fresh && ghCache.value && Date.now() - ghCache.at < GH_TTL_MS) {
+    return ghCache.value
+  }
+  return ghRefresh()
+}
+
+/** Drop the memoized answer, e.g. right after a login completes. */
+function forgetGhStatus() {
+  ghCache.at = 0
+  ghCache.value = null
+}
+
+async function ghStatusUncached() {
+  if (!GH) {
+    return { available: false, path: '', reason: '没有找到 GitHub CLI（gh），先装 gh 再回来' }
+  }
+  // Both spawns start together. Sequentially they cost 1.44 + 1.57 s because gh
+  // talks to the API inside each one; in parallel the pair costs the slower of
+  // the two. `rate_limit` is issued unconditionally even though it is only shown
+  // once an account is known: waiting to learn whether one exists, and only then
+  // asking for the quota, is exactly the serialization that made this slow.
+  const authP = runCmd(GH, ['auth', 'status', '--json', 'hosts'], 20000)
+  const rateP = runCmd(GH, ['api', 'rate_limit'], 20000)
+  const res = await authP
+  if (res.code !== 0) {
+    // Logged out is a normal state, not an error: gh exits non-zero and says so
+    // on stderr. Only a parse failure below is worth calling broken.
+    return {
+      available: true,
+      path: GH,
+      loggedIn: false,
+      accounts: [],
+      active: null,
+      rate: null,
+      error: (res.err || res.out || '').trim().slice(0, 300),
+    }
+  }  let hosts = {}
+  try {
+    hosts = JSON.parse(res.out).hosts || {}
+  } catch (err) {
+    return {
+      available: true,
+      path: GH,
+      loggedIn: false,
+      accounts: [],
+      active: null,
+      rate: null,
+      error: 'gh auth status 返回的不是 JSON：' + String(err?.message ?? err),
+    }
+  }
+  const accounts = []
+  for (const [host, list] of Object.entries(hosts)) {
+    for (const a of list || []) {
+      accounts.push({
+        host: a.host || host,
+        login: a.login || '',
+        active: Boolean(a.active),
+        // gh reports a TLS timeout as state:"timeout" rather than hiding the
+        // account, so the page can say "登录还在，只是这次没验上".
+        state: a.state || '',
+        tokenSource: a.tokenSource || '',
+        scopes: a.scopes || '',
+        gitProtocol: a.gitProtocol || '',
+        error: a.error || '',
+      })
+    }
+  }
+  const active = accounts.find((a) => a.active) || accounts[0] || null
+  // The quota call was already in flight while the account was being read, so
+  // awaiting it here costs whatever is left of its ~1.6 s at most — often none.
+  // A failure must not make the account look absent: the account line stands on
+  // its own and the badge simply goes missing.
+  let rate = null
+  if (active) {
+    const rl = await rateP
+    if (rl.code === 0) {
+      try {
+        const d = JSON.parse(rl.out)
+        const core = (d && d.resources && d.resources.core) || d.rate || null
+        if (core && core.limit) {
+          rate = {
+            remaining: core.remaining,
+            limit: core.limit,
+            resetAt: core.reset ? new Date(core.reset * 1000).toISOString() : null,
+          }
+        }
+      } catch { /* leave null: the account line stands without a quota */ }
+    }
+  } else {
+    // Nothing to read it against. Let it settle so a rejected promise does not
+    // surface as an unhandled rejection when gh is installed but logged out.
+    rateP.catch(() => {})
+  }
+  return { available: true, path: GH, loggedIn: Boolean(active), active, accounts, rate, error: '' }
+}
+
+/**
+ * Device-code login, driven from the page.
+ *
+ * `gh auth login --web` prints a one-time code and the device URL, then blocks
+ * polling GitHub until the browser side accepts. We capture the two strings, hand
+ * them to the page, and leave the process running — killing it cancels the
+ * pending authorization, so the only reason to kill is a newer attempt.
+ */
+const ghLogin = {
+  running: false,
+  code: '',
+  url: '',
+  startedAt: null,
+  finishedAt: null,
+  ok: null,
+  error: '',
+  child: null,
+  log: '',
+}
+
+const GH_CODE_RE = /one-time code\s*[:(]?\s*([A-Z0-9]{4}-[A-Z0-9]{4})/i
+const GH_URL_RE = /(https:\/\/github\.com\/login\/device)/i
+
+function startGhLogin() {
+  return new Promise((resolve) => {
+    if (!GH) {
+      resolve({ ok: false, error: '没有找到 GitHub CLI（gh），先装 gh 再回来' })
+      return
+    }
+    if (ghLogin.running) {
+      resolve({ ok: true, running: true, code: ghLogin.code, url: ghLogin.url })
+      return
+    }
+    Object.assign(ghLogin, {
+      running: true,
+      code: '',
+      url: '',
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+      ok: null,
+      error: '',
+      log: '',
+    })
+
+    let child
+    try {
+      child = spawn(GH, ['auth', 'login', '--hostname', 'github.com',
+        '--git-protocol', 'https', '--web'], {
+        windowsHide: true,
+        // No TTY and no stdin: the flow is entirely stdout/stderr plus the
+        // browser, which is what makes it drivable from a web page at all.
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    } catch (err) {
+      Object.assign(ghLogin, { running: false, ok: false, error: String(err?.message ?? err) })
+      resolve({ ok: false, error: ghLogin.error })
+      return
+    }
+    ghLogin.child = child
+
+    const grab = (b) => {
+      const s = b.toString('utf8')
+      ghLogin.log = (ghLogin.log + s).slice(-4000)
+      const m = GH_CODE_RE.exec(s)
+      if (m && !ghLogin.code) ghLogin.code = m[1].toUpperCase()
+      const u = GH_URL_RE.exec(s)
+      // gh may not repeat the URL, so default to the well-known device page.
+      if (u && !ghLogin.url) ghLogin.url = u[1]
+      else if (ghLogin.code && !ghLogin.url) ghLogin.url = 'https://github.com/login/device'
+    }
+    child.stdout?.on('data', grab)
+    child.stderr?.on('data', grab)
+
+    // Declared before the handlers below so an early emit cannot hit the
+    // temporal dead zone; `let` + null keeps clearTimeout() safe either way.
+    let timer = null
+    let settled = false
+    const reply = () => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      resolve({ ok: true, running: true, code: ghLogin.code, url: ghLogin.url })
+    }
+
+    child.on('error', (err) => {
+      ghLogin.running = false
+      ghLogin.ok = false
+      ghLogin.finishedAt = new Date().toISOString()
+      ghLogin.error = String(err?.message ?? err)
+      if (!settled) { settled = true; clearTimeout(timer); resolve({ ok: false, error: ghLogin.error }) }
+    })
+
+    child.on('close', (code) => {
+      ghLogin.running = false
+      ghLogin.child = null
+      ghLogin.finishedAt = new Date().toISOString()
+      ghLogin.ok = code === 0
+      // A cancel already wrote its own reason. gh answers being killed with the
+      // same "One-time code ..." banner it prints on start, which as an error
+      // line reads like the login failed rather than like the operator stopped
+      // it — so the deliberate reason wins.
+      if (code !== 0 && ghLogin.error !== '已取消') {
+        ghLogin.error = (ghLogin.log || '').trim().slice(-300) || ('gh 退出码 ' + code)
+      }
+      // The answer changed: whoever polls next must not read the cached "logged
+      // out" for another 30 s after a successful authorization.
+      forgetGhStatus()
+      if (!settled) { settled = true; clearTimeout(timer); resolve({ ok: code === 0, code: ghLogin.code, url: ghLogin.url, error: ghLogin.error }) }
+    })
+
+    // The code is printed within a second in practice. Reply as soon as it shows
+    // up instead of making the page wait for the whole authorization round trip,
+    // and give up after 8 s so a silent gh cannot hang the request.
+    timer = setTimeout(reply, 8000)
+    const poll = setInterval(() => {
+      if (ghLogin.code) { clearInterval(poll); reply() }
+    }, 100)
+    child.on('close', () => clearInterval(poll))
+  })
+}
+
+/** Cancel a login that is still waiting for the browser, e.g. a mis-click. */
+function cancelGhLogin() {
+  if (!ghLogin.running || !ghLogin.child) return { ok: true, running: false }
+  try { ghLogin.child.kill() } catch { /* already gone */ }
+  ghLogin.running = false
+  ghLogin.child = null
+  ghLogin.finishedAt = new Date().toISOString()
+  ghLogin.ok = false
+  ghLogin.error = '已取消'
+  return { ok: true, running: false }
+}
 
 /**
  * The scan pipeline, in order. Each step reads the previous step's file, so the
- * order is not cosmetic: inventory_local.py writes local_inventory.json,
- * build_inventory.py reads it plus the curated source and writes inventory.json,
- * check.py reads inventory.json and writes report.md.
+ * order is not cosmetic: `inventory` writes local_inventory.json, `build` reads it
+ * plus the curated overrides and writes inventory.json, `check` reads
+ * inventory.json and writes report.md.
  *
- * A full run walks the disk, so it takes ~35 s. The HTTP handler therefore does
+ * A full run walks the disk, so it takes ~12 s. The HTTP handler therefore does
  * not wait for it — see startScan/scanState below.
  *
  * `weight` is measured, not guessed: on this machine the three steps take about
- * 2 s, 1 s and 32 s. A progress bar that advanced one third per step would sit
- * at 100 % for 32 of the 35 seconds, which reads as a hang. These fractions make
- * the bar track elapsed work instead of counting steps.
+ * 2 s, 1 s and 9 s. A progress bar that advanced one third per step would sit at
+ * 100 % for 9 of the 12 seconds, which reads as a hang. These fractions make the
+ * bar track elapsed work instead of counting steps.
  */
 const SCAN_STEPS = [
-  { file: 'inventory_local.py', weight: 0.30 },
-  { file: 'build_inventory.py', weight: 0.08 },
-  { file: 'check.py', weight: 0.62 },
+  { step: 'inventory', weight: 0.22 },
+  { step: 'build', weight: 0.10 },
+  { step: 'check', weight: 0.68 },
 ]
 
 let scanState = {
@@ -127,13 +463,25 @@ let scanState = {
   output: [],
 }
 
-/** Run one python file, resolving with its exit code and last lines of output. */
-function runStep(file) {
+/**
+ * Run one scan step, resolving with its exit code and last lines of output.
+ *
+ * The step code comes from the package and the working directory is the data
+ * directory: the package half is read-only and the data directory is where every
+ * output belongs, so nothing has to be copied out of the package at install time.
+ *
+ * `process.execPath` is the running Node, not a guess. The previous version had to
+ * resolve a Python interpreter — with a Store-alias fallback, a config override and
+ * the interpreter DSH happens to bundle — because there was no way to know which
+ * one a machine would have. There is only one Node here, and it is this one.
+ */
+function runStep(step) {
   return new Promise((resolve) => {
-    const child = spawn(PYTHON, [join(WATCH_DIR, file)], {
+    ensureDataDir()
+    const child = spawn(process.execPath, [join(LIB_DIR, 'run.mjs'), step], {
       cwd: WATCH_DIR,
       windowsHide: true,
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
+      env: { ...process.env },
     })
     const tail = []
     let stderr = ''
@@ -146,7 +494,7 @@ function runStep(file) {
     }
     child.stdout?.on('data', (b) => keep(b.toString('utf8')))
     child.stderr?.on('data', (b) => { stderr += b.toString('utf8') })
-    // A hung python must not wedge the state forever: kill it after 5 minutes.
+    // A hung step must not wedge the state forever: kill it after 5 minutes.
     const timer = setTimeout(() => {
       try { child.kill() } catch { /* already gone */ }
     }, 300000)
@@ -156,8 +504,8 @@ function runStep(file) {
     })
     child.on('close', (code) => {
       clearTimeout(timer)
-      // check.py returns 1 when any project failed to check. That is a finding,
-      // not a crash of the pipeline, so it is recorded and the run continues.
+      // `check` returns 1 when any project failed to check. That is a finding, not
+      // a crash of the pipeline, so it is recorded and the run continues.
       resolve({ code, tail, error: stderr.trim().slice(-400) })
     })
   })
@@ -169,23 +517,23 @@ function startScan() {
 
   scanState = {
     running: true, startedAt: Date.now(), finishedAt: 0,
-    step: SCAN_STEPS[0].file, stepIndex: 0, progress: 0, error: '', output: [],
+    step: SCAN_STEPS[0].step, stepIndex: 0, progress: 0, error: '', output: [],
   }
 
   ;(async () => {
     let done = 0
     for (let i = 0; i < SCAN_STEPS.length; i += 1) {
-      const { file, weight } = SCAN_STEPS[i]
-      scanState.step = file
+      const { step, weight } = SCAN_STEPS[i]
+      scanState.step = step
       scanState.stepIndex = i
       scanState.progress = done
-      const res = await runStep(file)
-      scanState.output.push({ step: file, code: res.code, tail: res.tail })
-      // inventory_local.py and build_inventory.py must succeed; check.py's 1 is
-      // an acceptable outcome (some project failed, which the report shows).
+      const res = await runStep(step)
+      scanState.output.push({ step, code: res.code, tail: res.tail })
+      // `inventory` and `build` must succeed; `check`'s 1 is an acceptable outcome
+      // (some project failed, which the report shows).
       const fatal = i < 2 && res.code !== 0
       if (fatal) {
-        scanState.error = res.error || `${file} 退出码 ${res.code}`
+        scanState.error = res.error || `${step} 退出码 ${res.code}`
         break
       }
       done += weight
@@ -195,7 +543,7 @@ function startScan() {
     scanState.running = false
     scanState.finishedAt = Date.now()
     scanState.step = ''
-    // scan_progress.json is deliberately left on disk. check.py rewrites it from
+    // scan_progress.json is deliberately left on disk. `check` rewrites it from
     // scratch — emit(0, "") on entry — so it never accumulates, and after a run
     // that died halfway it is the record of how far the check got. `at` in the
     // file makes a stale copy distinguishable from a live one.
@@ -213,7 +561,7 @@ async function readText(path) {
 }
 
 /**
- * Parse the markdown table check.py writes. Columns: 项目 | 类型 | 状态 | 说明.
+ * Parse the markdown table the check step writes. Columns: 项目 | 类型 | 状态 | 说明.
  * The prose above the table is for a human reading the file; the table is the
  * part worth parsing.
  */
@@ -232,18 +580,48 @@ function parseReport(md) {
 
   const rows = []
   for (const raw of md.split(/\r?\n/)) {
-    const cells = raw.match(/^\|\s*(.+?)\s*\|\s*(git|npm|snapshot|local)\s*\|\s*(.+?)\s*\|\s*(.*?)\s*\|$/)
+    // The kind column is whatever the check step decided the upstream is. It used to
+    // list only git|npm|snapshot|local, so a row whose kind was pypi or npx was
+    // silently skipped and its status never reached the page — which is why
+    // Tools showed no update even after the checker had found one. Match the
+    // column loosely instead of enumerating values that keep growing.
+    const cells = raw.match(/^\|\s*(.+?)\s*\|\s*([\w -]+?)\s*\|\s*(.+?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/)
+      || raw.match(/^\|\s*(.+?)\s*\|\s*([\w -]+?)\s*\|\s*(.+?)\s*\|\s*(.*?)\s*\|$/)
     if (!cells) continue
     const [, project, kind, statusRaw, detail] = cells
     // The status cell carries a leading emoji; strip it, keep the words.
     const status = statusRaw.replace(/^[^\p{L}\p{N}]+/u, '').trim()
     if (!status) continue
-    rows.push({ project, kind, status, detail })
+    // The detail column carries the upstream version ("本地 0.13.0 → 上游
+    // v0.13.2"). Pulling it out here is what lets an update reuse the version the
+    // checker already paid an API call for, instead of asking again at exactly
+    // the moment the anonymous quota may be empty.
+    let upstream = ''
+    const um = /上游\s*(v?[\d][\w.\-+]*)/.exec(detail || '')
+    if (um) upstream = um[1].trim()
+    const summary = String(cells[5] || '').trim()
+    rows.push({ project, kind, status, detail, upstream, summary })
   }
   return { generatedAt, counts, rows }
 }
 
-/** Last line of run.log: when check.py last ran and what it found. */
+/**
+ * The checker's rows, keyed by name.
+ *
+ * doUpdate needs the upstream version for a `github:` package, and the report
+ * already holds it. Reading it back is cheaper and more reliable than asking
+ * GitHub again — especially when the anonymous quota is what blocked the first
+ * attempt.
+ */
+async function readInventoryRows() {
+  const md = await readText(join(WATCH_DIR, 'report.md'))
+  const parsed = parseReport(md)
+  const map = new Map()
+  for (const r of parsed.rows || []) map.set(r.project, r)
+  return map
+}
+
+/** Last line of run.log: when the check step last ran and what it found. */
 async function readLastRun() {
   const log = await readText(join(WATCH_DIR, 'run.log'))
   if (!log) return null
@@ -412,7 +790,7 @@ async function readWatched() {
  */
 async function previewDelete(name) {
   const inv = await readInventory()
-  const all = [...inv.projects, ...inv.plugins]
+  const all = [...inv.projects, ...inv.plugins, ...(inv.tools || [])]
   const target = all.find((p) => p.name === name)
   if (!target) return { ok: false, error: `没有名为 ${name} 的项目` }
 
@@ -631,8 +1009,28 @@ async function doDelete(name, why = '') {
  */
 async function doUpdate(name) {
   const inv = await readInventory()
+
+  // Plugins are looked up too. They were missing here, so every plugin row's
+  // Update button answered "no project by that name" — true only because the
+  // search never included the list it was looking at.
+  const plugin = (inv.plugins || []).find((p) => p.name === name)
+  if (plugin) {
+    // Attach the tag the report already found; updatePlugin falls back to its
+    // own lookup only when this is missing.
+    const row = (await readInventoryRows()).get(name)
+    return updatePlugin({ ...plugin, upstream_tag: (row && row.upstream) || '' })
+  }
+
   const target = inv.projects.find((p) => p.name === name)
   if (!target) return { ok: false, error: `没有名为 ${name} 的项目` }
+
+  // A project row can be a package-manager install now. `updater` says which
+  // command actually upgrades it — `git pull` would be meaningless for a venv
+  // and `uv tool upgrade` meaningless for a checkout.
+  const updater = String(target.updater || '').toLowerCase()
+  if (updater === 'uv' || updater === 'pipx' || updater === 'npm') {
+    return updatePackage(target)
+  }
 
   const path = target.path || target.install_path || ''
   if (!isSafePath(path)) return { ok: false, error: '路径校验失败' }
@@ -683,6 +1081,315 @@ function runGit(cwd, args) {
   })
 }
 
+/** Same contract as runGit, for the package managers that install tools. */
+function runCmd(file, args, timeoutMs = 180000, cwd = undefined) {
+  return new Promise((resolve) => {
+    const isWin = process.platform === 'win32'
+    // On Windows the package managers are .cmd shims, and spawn does not resolve
+    // those without a shell. But a resolved absolute path already names its own
+    // executable: appending `.cmd` to `...\uv.exe` produced `uv.exe.cmd`, which
+    // is not a file — the upgrade then "failed" for a reason that had nothing to
+    // do with the package. Only add the suffix when there is none.
+    const hasExt = /\.[a-z0-9]+$/i.test(file)
+    const cmd = isWin && !hasExt ? file + '.cmd' : file
+    // A shell is only needed to run a .cmd shim. Going through cmd.exe for a real
+    // .exe splits its path on the space in "C:\Program Files" and runs
+    // "C:\Program" instead — gh lives there, so its calls all failed with an
+    // error about Program not being a recognized command.
+    const needShell = isWin && !hasExt
+    const child = spawn(cmd, args, { windowsHide: true, shell: needShell, cwd })
+    let out = ''
+    let err = ''
+    child.stdout?.on('data', (b) => { out += b.toString('utf8') })
+    child.stderr?.on('data', (b) => { err += b.toString('utf8') })
+    const timer = setTimeout(() => { try { child.kill() } catch { /* gone */ } }, timeoutMs)
+    child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out, err: String(e) }) })
+    child.on('close', (code) => { clearTimeout(timer); resolve({ code, out, err }) })
+  })
+}
+
+/**
+ * Upgrade a DSH plugin.
+ *
+ * Only a registry install can be upgraded here. `link:` and `file:` point at a
+ * directory the operator owns — there is no newer version to fetch, the working
+ * copy already is it. `github:` pins a ref in the profile's package.json, so
+ * moving it means rewriting that dependency line; refusing is more honest than
+ * silently installing something the operator did not pin.
+ */
+async function updatePlugin(plugin) {
+  const name = plugin.name || ''
+  const source = String(plugin.install_source || 'npm').toLowerCase()
+  if (!name) return { ok: false, error: '插件没有名字' }
+
+  if (source === 'link' || source === 'file') {
+    return {
+      ok: false,
+      error: `${name} 是本地安装（${source}），没有可拉取的上游版本；改的是那个目录本身`,
+    }
+  }
+  // A `github:` install pins a ref in the profile's package.json
+  // (`github:owner/repo#v0.13.0`), so it does have an upstream — the tag — and
+  // upgrading means rewriting that pin. Refusing here was wrong: the checker
+  // reports the newer tag, so the button has to be able to act on it.
+  let spec = null
+  if (source === 'github') {
+    const declared = readDeclaredSpec(name)
+    const m = /^github:([^#]+)(?:#(.+))?$/.exec(declared || '')
+    if (!m) {
+      return { ok: false, error: `${name} 的依赖声明不是 github: 形式（${declared || '空'}）` }
+    }
+    const repo = m[1]
+    // The checker already recorded the newest tag (that is where the "有更新"
+    // badge came from), so reuse it instead of spending another API call — the
+    // anonymous quota is 60/hour and this is exactly the moment it is empty.
+    let latest = String(plugin.upstream_tag || '').trim()
+    if (!latest) {
+      const got = await latestTagFor(repo)
+      if (got.tag) latest = got.tag
+      else {
+        return {
+          ok: false,
+          error: `${name} 需要升级到哪个版本无法确定：${got.reason || '查不到上游 tag'}`,
+        }
+      }
+    }
+    // `#v0.13.2` and `#0.13.2` both work; keep the tag's own spelling.
+    spec = `github:${repo}#${latest}`
+  }
+
+  const target = spec ? spec : name + '@latest'
+
+  // Let the profile's own package manager move it. Prefer the bundled pnpm
+  // through the bundled node; fall back to PATH for deployments that install
+  // it normally.
+  let res
+  if (existsSync(PNPM_CLI) && existsSync(NODE_EXE)) {
+    res = await runCmd(NODE_EXE, [PNPM_CLI, 'add', target,
+                                  '--config.minimumReleaseAge=0'], 300000, PROFILE_DIR)
+  } else {
+    res = await runCmd('pnpm', ['add', target,
+                                '--config.minimumReleaseAge=0'], 300000, PROFILE_DIR)
+  }
+  const blob = ((res.out || '') + (res.err || '')).trim()
+  const ok = res.code === 0
+  return {
+    ok,
+    name,
+    changed: ok && /\+\s/.test(blob),
+    code: res.code,
+    error: ok ? undefined : blob.slice(0, 300) || ('退出码 ' + res.code),
+    output: blob.slice(-400),
+    restartRequired: ok,
+  }
+}
+
+/** The dependency spec the profile declares for a package, or ''. */
+function readDeclaredSpec(name) {
+  try {
+    const raw = readFileSync(join(PROFILE_DIR, 'package.json'), 'utf8')
+    const pkg = JSON.parse(raw.replace(/^\uFEFF/, ''))
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.optionalDependencies || {}) }
+    return deps[name] || ''
+  } catch {
+    return ''
+  }
+}
+
+/** Newest release tag of a repository, as a ref suitable for `github:…#<ref>`. */
+async function latestTagFor(repo) {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
+      headers: { 'user-agent': 'dsh-github-watch', accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(20000),
+    })
+    if (res.status === 403 || res.status === 429) {
+      // Out of anonymous quota. Saying "no tag found" here is a lie that sends
+      // the operator looking for a tagging problem; the answer arrives in an
+      // hour, not never.
+      const reset = res.headers.get('x-ratelimit-reset')
+      const when = reset ? new Date(Number(reset) * 1000).toLocaleTimeString() : '稍后'
+      return { tag: '', reason: `GitHub API 额度用完（60 次/小时），${when} 后重试` }
+    }
+    if (res.ok) {
+      const d = await res.json()
+      const tag = String(d.tag_name || '').trim()
+      if (tag) return { tag }
+    }
+    const res2 = await fetch(`https://api.github.com/repos/${repo}/tags?per_page=30`, {
+      headers: { 'user-agent': 'dsh-github-watch', accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(20000),
+    })
+    if (res2.status === 403 || res2.status === 429) {
+      const reset = res2.headers.get('x-ratelimit-reset')
+      const when = reset ? new Date(Number(reset) * 1000).toLocaleTimeString() : '稍后'
+      return { tag: '', reason: `GitHub API 额度用完（60 次/小时），${when} 后重试` }
+    }
+    if (!res2.ok) return { tag: '', reason: `仓库不可达（HTTP ${res2.status}）` }
+    const tags = await res2.json()
+    const nums = tags
+      .map((t) => String(t.name || '').trim())
+      .filter((n) => /^v?\d/.test(n))
+      .map((n) => ({ raw: n, key: n.replace(/^v/i, '').split('.').map((x) => parseInt(x, 10) || 0) }))
+    if (!nums.length) return { tag: '', reason: '仓库没有 release 也没有版本 tag' }
+    nums.sort((a, b) => {
+      for (let i = 0; i < Math.max(a.key.length, b.key.length); i++) {
+        const d = (a.key[i] || 0) - (b.key[i] || 0)
+        if (d) return d
+      }
+      return 0
+    })
+    return { tag: nums[nums.length - 1].raw }
+  } catch (err) {
+    return { tag: '', reason: '请求失败: ' + String(err && err.message ? err.message : err) }
+  }
+}
+
+/**
+ * Where `uv` lives. Its installer puts it in ~/.local/bin, which this process's
+ * PATH does not include — the bare name would answer ENOENT.
+ */
+function resolveUv() {
+  const cands = [
+    join(homedir(), '.local', 'bin', 'uv.exe'),
+    join(homedir(), '.local', 'bin', 'uv'),
+    join(homedir(), '.cargo', 'bin', 'uv.exe'),
+  ]
+  for (const p of cands) {
+    if (existsSync(p)) return p
+  }
+  return 'uv'
+}
+
+/**
+ * Upgrade a package-manager install. `updater` is already known to be one of
+ * uv / pipx / npm, so the branch here is only about which command to run.
+ */
+async function updatePackage(project) {
+  const name = project.name || ''
+  const updater = String(project.updater || '').toLowerCase()
+  if (!name) return { ok: false, error: '条目没有名字' }
+
+  let res
+  if (updater === 'uv') {
+    // `uv` is installed by its own installer into ~/.local/bin, which is not on
+    // PATH here. Falling back to the bare name answers ENOENT and reads as a
+    // failed upgrade for a reason unrelated to the package.
+    res = await runCmd(resolveUv(), ['tool', 'upgrade', name])
+  } else if (updater === 'pipx') {
+    res = await runCmd('pipx', ['upgrade', name])
+  } else if (updater === 'npm') {
+    // A package with a postinstall script is refused by npm's allow-scripts
+    // policy. `bun` is exactly that, and the refusal is a one-line warning that
+    // otherwise looks like a silent no-op.
+    res = await runCmd('npm', ['install', '-g', name + '@latest',
+                               '--allow-scripts=' + name])
+  } else {
+    return { ok: false, error: `未知的升级方式：${project.updater || '(空)'}` }
+  }
+
+  const blob = ((res.out || '') + (res.err || '')).trim()
+  const ok = res.code === 0
+  // A tool that a running MCP server has open cannot have its files replaced:
+  // uv reports EPERM / "拒绝访问" while the process holds the directory. That is
+  // not a broken command, it is a blocked one — saying so is what makes the
+  // Restart button make sense.
+  const locked = !ok && /拒绝访问|Access is denied|os error 5|EPERM|being used by another process/i.test(blob)
+  return {
+    ok,
+    name,
+    updater,
+    changed: ok && !/Requirement already satisfied|Nothing to upgrade/i.test(blob),
+    code: res.code,
+    error: ok ? undefined : blob.slice(0, 300) || `退出码 ${res.code}`,
+    output: blob.slice(0, 300),
+    locked,
+    restartRequired: ok || locked,
+    restartHint: locked
+      ? '文件被正在运行的进程占用，重启 DSH 后再试一次'
+      : (ok ? '重启 DSH 后新版本才会加载' : undefined),
+  }
+}
+
+/**
+ * Re-run the scan and the checker after an upgrade changed something.
+ *
+ * All three steps run, including the disk walk. An earlier version skipped the
+ * walk here to save a second — "the directories did not move, only their contents
+ * changed" — but the walk is exactly what reads the installed versions off disk.
+ * Skipping it produced the bug it was meant to avoid: a freshly installed version
+ * never reached inventory.json, because the file `build` merges still held the old
+ * number.
+ */
+async function rescanAfterUpdate() {
+  const steps = ['inventory', 'build', 'check']
+  const out = []
+  for (const step of steps) {
+    const res = await runStepSync(step)
+    out.push({ step, code: res.code, tail: ((res.out || '') + (res.err || '')).slice(-200) })
+    // `check`'s 1 means "some project failed to check", which the report shows;
+    // the two steps before it have no such meaning and must succeed.
+    if (step === 'check') return { ok: res.code === 0 || res.code === 1, steps: out }
+    if (res.code !== 0) return { ok: false, steps: out }
+  }
+  return { ok: true, steps: out }
+}
+
+/** Run one scan step to completion and wait for it. */
+function runStepSync(step) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn(process.execPath, [join(LIB_DIR, 'run.mjs'), step], {
+        cwd: WATCH_DIR,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env },
+      })
+    } catch (err) {
+      return resolve({ code: -1, out: '', err: String(err) })
+    }
+    let out = ''
+    let err = ''
+    child.stdout?.on('data', (b) => { out += b.toString('utf8') })
+    child.stderr?.on('data', (b) => { err += b.toString('utf8') })
+    const timer = setTimeout(() => { try { child.kill() } catch { /* gone */ } }, 180000)
+    child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out, err: String(e) }) })
+    child.on('close', (code) => { clearTimeout(timer); resolve({ code, out, err }) })
+  })
+}
+
+/**
+ * Restart the host application.
+ *
+ * A plugin cannot reload the process it runs inside, so this hands the job to
+ * the OS: spawn a detached helper that waits for this process to exit, then
+ * starts the same executable again. The helper is a shell one-liner on purpose —
+ * a second copy of this plugin living in a temp file would be a worse thing to
+ * leave behind than the command that starts it.
+ *
+ * Returns before the restart happens: the caller gets a response, then the
+ * window closes. A wait-for-exit loop in the helper is what keeps the new
+ * instance from fighting the old one for the single-instance lock.
+ */
+async function doRestart() {
+  // Deliberately does NOT try to restart the host.
+  //
+  // An earlier version spawned a second copy and then called process.exit(0).
+  // That crashes the app: this plugin runs inside the Electron host, so exiting
+  // tears down the process without the host's own shutdown — single-instance
+  // lock, ports and session state all left dangling, and the new copy raced the
+  // dying one for them. The result was "应用无法启动或已意外停止" on the next launch.
+  //
+  // The host owns its lifecycle; a plugin cannot hand it over cleanly. So this
+  // endpoint reports what the operator has to do instead of doing it badly.
+  return {
+    ok: false,
+    manual: true,
+    error: '请手动关闭 DSH 再重新打开（插件无法安全地重启宿主进程）',
+  }
+}
+
 /** Read a JSON request body, tolerating an empty or malformed one. */
 function readJsonBody(req) {
   return new Promise((resolve) => {
@@ -709,7 +1416,7 @@ function readJsonBody(req) {
  *   and unable to tell "I muted it" from "it is gone"
  *   touching the files would be a delete wearing another name
  *
- * So this only flips a flag in inventory.json. check.py reads it and empties the
+ * So this only flips a flag in inventory.json. The check step reads it and empties the
  * probe list, which is what actually stops the network calls.
  */
 async function setMuted(name, muted) {
@@ -724,6 +1431,9 @@ async function setMuted(name, muted) {
   }
 
   let found = false
+  // Tools are intentionally absent from this loop. Muting means "stop loading
+  // this DSH plugin"; a command-line tool has no load step to suppress, so
+  // offering the action would promise an effect it cannot have.
   for (const list of [inv.projects || [], inv.plugins || []]) {
     for (const p of list) {
       if (p.name === name) {
@@ -755,6 +1465,10 @@ async function snapshot() {
     readQueue(),
     readWatched(),
   ])
+  // `queue` is read but not served: the build step folds reported downloads
+  // into inventory.projects, so a separate list would show them twice — once as
+  // "pending" and once as a real row. It stays read-only reference here.
+  void queue
   const report = parseReport(md)
 
   // A project the operator uninstalled leaves a `removed` record in watched.json.
@@ -786,6 +1500,11 @@ async function snapshot() {
     // has to say which is which or none of them can be acted on.
     const removed = removedBySlug.get((p.slug || p.name).toLowerCase())
     const gone = p.exists === false
+    // A directory that is not on disk has no row here. "目录不见了" asked a
+    // question this page cannot answer — either the operator deleted it (fine,
+    // watched.json still records that) or something else did (not a project to
+    // manage). Neither belongs in a list of what you have.
+    if (gone) return null
     // A muted project is not checked, so the report has no status for it. Saying
     // "未检查" would be honest but useless — the reason is that the operator
     // muted it, and that is what the row should say.
@@ -816,13 +1535,24 @@ async function snapshot() {
       kind: p.kind || 'git',
       slug: p.slug || '',
       path: p.path || '',
+      // What it is and where it came from, so a row that says "有更新" also says
+      // whether that update is a git pull or a package upgrade. `updater` is
+      // what the Update button dispatches on.
+      version: p.version || '',
+      source: p.source || '',
+      updater: p.updater || '',
+      summary: hit ? (hit.summary || '') : '',
       aliases: p.aliases_present || [],
       note: p.note || '',
       state,
       status,
       detail,
-      description: lead,
-      descriptionRest: rest,
+      // The manifest's own one-liner (already trimmed to the row's budget by
+      // build step) wins over a hand-written blurb: it is what the
+      // project says about itself, and it exists for every row rather than only
+      // the ones someone annotated.
+      description: p.description || lead,
+      descriptionRest: p.description ? '' : rest,
       // Sizes and dependencies travel with the row so the page can answer the
       // question this list exists for: what is big, and what does it need. The
       // two totals are separate on purpose — `size_mb` is re-downloadable
@@ -841,15 +1571,17 @@ async function snapshot() {
       } : null,
       workMb: p.work_mb || 0,
     }
-  })
+  }).filter(Boolean)
 
   // Plugins are not cloned, so there is no HEAD to compare: the honest signal is
-  // the installed version against the upstream one, and only the checker's npm
-  // rows carry that. Anything else says "未检查" rather than pretending.
-  const npmBySlug = new Map(report.rows.filter((r) => r.kind === 'npm')
-    .map((r) => [r.project, r]))
+  // the installed version against the upstream one. Every kind of row counts —
+  // filtering to `kind === 'npm'` here is what made a `link:` or `github:`
+  // plugin show "未检查" while the report already contained a row explaining
+  // exactly why it had no upstream. The checker had done its job; this line
+  // threw the answer away.
+  const pluginRows = new Map(report.rows.map((r) => [r.project, r]))
   const plugins = inventory.plugins.map((p) => {
-    const hit = npmBySlug.get(p.name)
+    const hit = pluginRows.get(p.name)
     const { lead, rest } = splitBlurb(blurbs[p.name])
     // Plugins get the same `state` treatment as projects. Without it a muted
     // plugin had `state === undefined`, so the client's `active` filter never
@@ -867,18 +1599,22 @@ async function snapshot() {
       version: p.installed_version || p.version || '',
       installed: p.installed !== false,
       note: p.note || '',
+      // Carried through so doUpdate can build `github:repo#tag` without a second
+      // API round-trip.
+      upstream_tag: hit ? (hit.upstream || '') : '',
+      summary: hit ? (hit.summary || '') : '',
       state: muted ? 'muted' : 'ok',
       status: muted ? '已屏蔽' : (hit ? hit.status : '未检查'),
       detail: muted
         ? '不检查更新；插件仍在 profile 里，随时可以取消屏蔽'
         : (hit ? hit.detail : (p.note || '')),
-      description: lead,
-      descriptionRest: rest,
+      description: p.description || lead,
+      descriptionRest: p.description ? '' : rest,
     }
   })
 
   // Standalone binaries: nothing to diff, so the honest status is "已安装" with
-  // the version read off the file itself (done by build_inventory.py, which
+  // the version read off the file itself (done by the build step, which
   // runs `<tool> --version`). They are listed because the page's job is "what do
   // I have", not "what is in git".
   const tools = (inventory.tools || []).map((t) => ({
@@ -917,10 +1653,28 @@ async function snapshot() {
     projects,
     plugins,
     tools,
-    queue,
     discovered,
-    queueCount: queue.length,
     discoveredCount: discovered.length,
+    // The GitHub account the checker spends its quota as, and the login attempt
+    // in flight. The account is read WITHOUT waiting: `ghPeek()` returns whatever
+    // is already known and refreshes in the background, because a 1.6 s network
+    // round trip has no business delaying a list of local files. The page asks
+    // for the account separately (GET /api/github) so it can paint the rows first
+    // and let the card fill in. A null here means "not read yet", which the page
+    // shows as nothing rather than as "not logged in".
+    github: {
+      ...(ghPeek() || {}),
+      pending: !ghCache.value,
+      login: {
+        running: ghLogin.running,
+        code: ghLogin.code,
+        url: ghLogin.url,
+        ok: ghLogin.ok,
+        error: ghLogin.error,
+        startedAt: ghLogin.startedAt,
+        finishedAt: ghLogin.finishedAt,
+      },
+    },
     missing: !md,
     // Kept for callers that still read the flat list.
     rows: report.rows,
@@ -979,20 +1733,48 @@ const route = {
         for (const n of names.filter(Boolean)) {
           results.push(await doUpdate(String(n)))
         }
-        return send(200, { ok: results.every((r) => r.ok), results })
+        // `restartNeeded` is what the page uses to offer the button: any entry
+        // that changed a package needs a reload before the new files are read.
+        const restartNeeded = results.some((r) => r && r.restartRequired)
+        const locked = results.filter((r) => r && r.locked).map((r) => r.name)
+
+        // Rebuild the inventory in place. Without this the page kept showing the
+        // version from before the upgrade: the package on disk was new, but
+        // inventory.json still held the old number, so the row said "有更新"
+        // forever. The update knows exactly what it changed, so it is the right
+        // place to refresh the record — waiting for the operator to press Scan
+        // is how a finished upgrade looks unfinished.
+        const changed = results.filter((r) => r && r.changed).map((r) => r.name)
+        let rescan = null
+        if (changed.length) {
+          rescan = await rescanAfterUpdate()
+        }
+
+        return send(200, {
+          ok: results.every((r) => r.ok),
+          results,
+          restartNeeded,
+          locked,
+          rescanned: Boolean(rescan && rescan.ok),
+          rescan,
+        })
+      }
+      if (url.pathname === '/github-watch/api/restart' && req.method === 'POST') {
+        return send(200, await doRestart())
       }
       // POST starts the pipeline; it returns at once with {"started":true}.
-      // The work is 40 s of disk walking — far past any sane request timeout —
-      // so the browser polls GET below instead of holding a socket open.
+      // The work is ~12 s of disk walking plus network probes — past any sane
+      // request timeout — so the browser polls GET below instead of holding a
+      // socket open.
       if (url.pathname === '/github-watch/api/scan' && req.method === 'POST') {
         return send(200, startScan())
       }
       if (url.pathname === '/github-watch/api/scan' && req.method === 'GET') {
-        // check.py writes per-project progress to scan_progress.json as it goes.
-        // Without it the bar would sit at one fixed percentage for ~30 s, since
-        // that single step is most of the wall clock.
+        // The `check` step writes per-project progress to scan_progress.json as it
+        // goes. Without it the bar would sit at one fixed percentage for ~9 s,
+        // since that single step is most of the wall clock.
         let sub = null
-        if (scanState.running && scanState.step === 'check.py') {
+        if (scanState.running && scanState.step === 'check') {
           const raw = await readText(join(WATCH_DIR, 'scan_progress.json'))
           if (raw) {
             try {
@@ -1003,7 +1785,7 @@ const route = {
             } catch { sub = null }
           }
         }
-        // The check step owns the last 62 %; fold its own fraction in so the bar
+        // The check step owns the last 68 %; fold its own fraction in so the bar
         // moves once per project rather than once per step.
         let progress = scanState.progress
         if (sub) {
@@ -1029,6 +1811,45 @@ const route = {
         res.statusCode = md ? 200 : 404
         res.setHeader('content-type', 'text/markdown; charset=utf-8')
         return res.end(md || '尚未生成报告')
+      }
+      // -- GitHub account ---------------------------------------------------
+      // The credential stays in gh's own store (Windows Credential Manager).
+      // These endpoints start a browser authorization and read back its result;
+      // no token is ever returned, because none is ever needed here.
+      //
+      // Reading the account costs a network round trip through gh (~1.6 s), so
+      // this endpoint never awaits one. It returns whatever is cached and, when
+      // that is nothing, kicks off a read that the next poll (or the next page
+      // load) picks up. The page therefore paints instantly and the card fills
+      // in a moment later; `pending` is how it knows the difference between
+      // "not read yet" and "read, and nobody is logged in".
+      if (url.pathname === '/github-watch/api/github' && req.method === 'GET') {
+        return send(200, {
+          ...(ghPeek() || {}),
+          pending: !ghCache.value,
+          login: {
+            running: ghLogin.running,
+            code: ghLogin.code,
+            url: ghLogin.url,
+            ok: ghLogin.ok,
+            error: ghLogin.error,
+          },
+        })
+      }
+      if (url.pathname === '/github-watch/api/github/refresh' && req.method === 'POST') {
+        // Explicit re-read, e.g. after the user ran `gh auth login` in their own
+        // terminal rather than through this page.
+        forgetGhStatus()
+        return send(200, await ghStatus())
+      }
+      if (url.pathname === '/github-watch/api/github/login' && req.method === 'POST') {
+        // The authorization blocks until a human finishes in the browser, which
+        // is minutes not milliseconds, so the call returns the code and the page
+        // polls GET /api/github until `loggedIn` flips.
+        return send(200, await startGhLogin())
+      }
+      if (url.pathname === '/github-watch/api/github/cancel' && req.method === 'POST') {
+        return send(200, cancelGhLogin())
       }
       return send(404, { error: 'unknown endpoint' })
     } catch (err) {

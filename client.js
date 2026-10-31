@@ -5,7 +5,7 @@ window.__ModuleLoader__.load({
     const h = React.createElement;
     const { useState, useEffect, useCallback } = React;
 
-    const CSS = `.gw,.gw *,.gw *::before,.gw *::after{box-sizing:border-box}.gw{width:100%;max-width:880px;display:flex;flex-direction:column;gap:14px;color:var(--dsw-alias-label-primary)}.gw_head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.gw_title{font-size:15px;font-weight:600;line-height:22px}.gw_when{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}.gw_stats{display:flex;gap:8px;flex-wrap:wrap}.gw_stat{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;gap:1px;min-width:74px}.gw_num{font-size:17px;font-weight:600;line-height:24px;font-variant-numeric:tabular-nums}.gw_lbl{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_stat.hot .gw_num{color:var(--dsw-alias-state-error-primary)}.gw_stat.good .gw_num{color:var(--dsw-alias-state-success-primary)}.gw_bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:8px}.gw_search{flex:0 1 220px;min-width:0;max-width:220px}.gw_bar>.gw_btn{flex:none;white-space:nowrap}.gw_bar>.gw_when{flex:none;margin-left:auto}.gw_search input{width:100%;height:32px;font:inherit;font-size:13px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none}.gw_search input::placeholder{color:var(--dsw-alias-label-tertiary)}.gw_search input:focus-visible{border-color:var(--dsw-alias-state-business-primary)}.gw_btn{cursor:pointer;font-size:12px;line-height:18px;padding:4px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary)}.gw_btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.gw_btn:disabled{opacity:.5;cursor:default}.gw_list{display:flex;flex-direction:column;gap:6px}.gw_row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:9px;padding:9px 12px}.gw_dot{width:7px;height:7px;border-radius:999px;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.updated{background:var(--dsw-alias-state-error-primary)}.gw_dot.current{background:var(--dsw-alias-state-success-primary)}.gw_dot.upstream{background:var(--dsw-alias-state-business-primary)}.gw_dot.removed{background:var(--dsw-alias-label-tertiary)}.gw_dot.vanished{background:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-error-primary))}.gw_status.removed{color:var(--dsw-alias-label-tertiary);text-decoration:line-through}.gw_status.vanished{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.isremoved{opacity:.6}.gw_name{font-size:13px;line-height:20px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gw_kind{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px;flex:none}.gw_status{font-size:12px;line-height:18px;flex:none;white-space:nowrap}.gw_status.updated{color:var(--dsw-alias-state-error-primary)}.gw_status.current{color:var(--dsw-alias-state-success-primary)}.gw_status.upstream{color:var(--dsw-alias-state-business-primary)}.gw_status.gone{color:var(--dsw-alias-label-tertiary)}.gw_detail{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);width:100%;word-break:break-all}.gw_row.hasdesc{align-items:flex-start}.gw_desc{font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary);width:100%;padding-top:2px;border-top:1px solid var(--dsw-alias-border-l2);margin-top:2px;word-break:break-word}.gw_more{cursor:pointer;font:inherit;font-size:11px;line-height:16px;padding:0 6px;margin-left:6px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-state-business-primary);vertical-align:baseline}.gw_more:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_moreText{color:var(--dsw-alias-label-tertiary)}.gw_section{display:flex;flex-direction:column;gap:8px}.gw_sectHead{display:flex;align-items:baseline;gap:8px;padding:6px 2px 0}.gw_sectTitle{font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-secondary)}.gw_sectCount{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_slug{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);text-decoration:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.gw_emptySmall{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;padding:10px 4px}.gw_size{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;flex:none;background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px}.gw_sizeDeps{color:var(--dsw-alias-label-tertiary)}.gw_depBox{width:100%;margin-top:6px;padding:8px 10px;border-top:1px dashed var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:6px;background:var(--dsw-alias-bg-layer-1);border-radius:8px}.gw_depPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all}.gw_depList{display:flex;flex-direction:column;gap:4px}.gw_dep{display:flex;align-items:baseline;gap:8px;font-size:12px;line-height:18px}.gw_dep.miss{opacity:.5}.gw_depName{color:var(--dsw-alias-label-primary);flex:none;min-width:150px}.gw_depWhy{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px;flex:1;min-width:0}.gw_depTag{flex:none;font-size:10px;line-height:14px;color:var(--dsw-alias-state-business-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.gw_depSize{flex:none;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);font-size:11px}.gw_work{border-top:1px solid var(--dsw-alias-border-l2);padding-top:6px;display:flex;flex-direction:column;gap:4px}.gw_workHead{display:flex;align-items:baseline;gap:8px}.gw_workTitle{font-size:11px;line-height:16px;font-weight:600;color:var(--dsw-alias-state-error-primary)}.gw_workSize{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);margin-left:auto}.gw_depMini{padding-left:14px}.gw_dot.muted{background:var(--dsw-alias-label-tertiary);opacity:.7}.gw_status.muted{color:var(--dsw-alias-label-tertiary)}.gw_row.ismuted{opacity:.75}.gw_tab.active .gw_tabCount{color:var(--dsw-alias-label-secondary)}.gw_tabs{display:flex;gap:4px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}.gw_tab{cursor:pointer;font:inherit;font-size:13px;line-height:20px;padding:5px 12px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;gap:6px}.gw_tab:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_tab.active{color:var(--dsw-alias-label-primary);font-weight:600;background:var(--dsw-alias-bg-layer-3);box-shadow:inset 0 -2px 0 var(--dsw-alias-state-business-primary)}.gw_tabCount{font-size:11px;line-height:16px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_check{flex:none;width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--dsw-alias-state-business-primary)}.gw_check.gap{visibility:hidden}.gw_row.picked{border-color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 6%,transparent)}.gw_selectBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}.gw_selectAll{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--dsw-alias-label-secondary)}.gw_selectAll input{accent-color:var(--dsw-alias-state-business-primary)}.gw_selCount{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-left:auto;font-variant-numeric:tabular-nums}.gw_btnDanger{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.gw_btnDanger:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}.gw_btnDangerSolid{border-color:transparent;background:var(--dsw-alias-state-error-primary);color:#fff}.gw_notice{font-size:12px;line-height:18px;padding:8px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);cursor:pointer;word-break:break-word}.gw_overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000}.gw_dialog{background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;box-shadow:var(--dsw-shadow-lv1);padding:18px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}.gw_dialogTitle{font-size:15px;font-weight:600;line-height:22px}.gw_dialogBody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_dialogList{display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto}.gw_dialogItem{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.gw_dialogName{font-size:13px;font-weight:600}.gw_dialogBreak{font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_dialogWarn{font-size:11px;color:var(--dsw-alias-state-error-primary);font-weight:600}.gw_dialogOk{font-size:11px;color:var(--dsw-alias-state-success-primary)}.gw_dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}.gw_sectTitle.gw_newTitle{color:var(--dsw-alias-state-error-primary)}.gw_queueHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);padding:0 2px 2px}.gw_row.gw_new{border-color:var(--dsw-alias-state-error-primary);border-style:dashed}.gw_sectTitle.gw_discTitle{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.gw_disc{border-color:var(--dsw-alias-state-business-primary);border-style:dotted}.gw_want{width:100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent);border-left:2px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:3px 8px;word-break:break-word}.gw_btnScan{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}.gw_btnScan:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 12%,transparent)}.gw_scanBar{position:relative;height:26px;border-radius:6px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);overflow:hidden;display:flex;align-items:center}.gw_scanFill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 22%,transparent);transition:width .4s ease}.gw_scanText{position:relative;font-size:11px;line-height:16px;padding:0 10px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}.gw_empty{color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:20px;padding:22px 4px;text-align:center}.gw_err{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.gw_copyTag{flex:none;font-size:10px;line-height:16px;padding:0 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_copies{margin-bottom:6px}.gw_copiesHead{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}`;
+    const CSS = `.gw,.gw *,.gw *::before,.gw *::after{box-sizing:border-box}.gw{width:100%;max-width:880px;display:flex;flex-direction:column;gap:14px;color:var(--dsw-alias-label-primary)}.gw_head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.gw_title{font-size:15px;font-weight:600;line-height:22px}.gw_when{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}.gw_bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:8px}.gw_search{flex:0 1 220px;min-width:0;max-width:220px}.gw_bar>.gw_btn{flex:none;white-space:nowrap}.gw_bar>.gw_when{flex:none;margin-left:auto}.gw_search input{width:100%;height:32px;font:inherit;font-size:13px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none}.gw_search input::placeholder{color:var(--dsw-alias-label-tertiary)}.gw_search input:focus-visible{border-color:var(--dsw-alias-state-business-primary)}.gw_btn{cursor:pointer;font-size:12px;line-height:18px;padding:4px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary)}.gw_btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.gw_btn:disabled{opacity:.5;cursor:default}.gw_list{display:flex;flex-direction:column;gap:6px}.gw_row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:9px;padding:9px 12px}.gw_dot{width:7px;height:7px;border-radius:999px;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.updated{background:var(--dsw-alias-state-error-primary)}.gw_dot.current{background:var(--dsw-alias-state-success-primary)}.gw_dot.upstream{background:var(--dsw-alias-state-business-primary)}.gw_dot.removed{background:var(--dsw-alias-label-tertiary)}.gw_dot.vanished{background:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-error-primary))}.gw_status.removed{color:var(--dsw-alias-label-tertiary);text-decoration:line-through}.gw_status.vanished{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.isremoved{opacity:.6}.gw_name{font-size:13px;line-height:20px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gw_kind{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px;flex:none}.gw_status{font-size:12px;line-height:18px;flex:none;white-space:nowrap}.gw_status.updated{color:var(--dsw-alias-state-error-primary)}.gw_status.current{color:var(--dsw-alias-state-success-primary)}.gw_status.upstream{color:var(--dsw-alias-state-business-primary)}.gw_status.gone{color:var(--dsw-alias-label-tertiary)}.gw_detailLine{display:flex;flex-direction:column;align-items:stretch;gap:1px;width:100%;min-width:0}.gw_detailPath{width:100%;font-size:11px;line-height:16px;text-align:left;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gw_detail{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all;width:100%}.gw_row.hasdesc{align-items:flex-start}.gw_desc{font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary);width:100%;padding-top:2px;border-top:1px solid var(--dsw-alias-border-l2);margin-top:2px;word-break:break-word}.gw_more{cursor:pointer;font:inherit;font-size:11px;line-height:16px;padding:0 6px;margin-left:6px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-state-business-primary);vertical-align:baseline}.gw_more:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_moreText{color:var(--dsw-alias-label-tertiary)}.gw_section{display:flex;flex-direction:column;gap:8px}.gw_sectHead{display:flex;align-items:baseline;gap:8px;padding:6px 2px 0}.gw_sectTitle{font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-secondary)}.gw_sectCount{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_slug{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);text-decoration:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.gw_emptySmall{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;padding:10px 4px}.gw_size{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;flex:none;background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px}.gw_sizeDeps{color:var(--dsw-alias-label-tertiary)}.gw_depBox{width:100%;margin-top:6px;padding:8px 10px;border-top:1px dashed var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:6px;background:var(--dsw-alias-bg-layer-1);border-radius:8px}.gw_depPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all}.gw_depList{display:flex;flex-direction:column;gap:4px}.gw_dep{display:flex;align-items:baseline;gap:8px;font-size:12px;line-height:18px}.gw_dep.miss{opacity:.5}.gw_depName{color:var(--dsw-alias-label-primary);flex:none;min-width:150px}.gw_depWhy{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px;flex:1;min-width:0}.gw_depTag{flex:none;font-size:10px;line-height:14px;color:var(--dsw-alias-state-business-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.gw_depSize{flex:none;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);font-size:11px}.gw_work{border-top:1px solid var(--dsw-alias-border-l2);padding-top:6px;display:flex;flex-direction:column;gap:4px}.gw_workHead{display:flex;align-items:baseline;gap:8px}.gw_workTitle{font-size:11px;line-height:16px;font-weight:600;color:var(--dsw-alias-state-error-primary)}.gw_workSize{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);margin-left:auto}.gw_depMini{padding-left:14px}.gw_dot.muted{background:var(--dsw-alias-label-tertiary);opacity:.7}.gw_status.muted{color:var(--dsw-alias-label-tertiary)}.gw_row.ismuted{opacity:.75}.gw_tab.active .gw_tabCount{color:var(--dsw-alias-label-secondary)}.gw_tabs{display:flex;gap:4px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}.gw_tab{cursor:pointer;font:inherit;font-size:13px;line-height:20px;padding:5px 12px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;gap:6px}.gw_tab:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_tab.active{color:var(--dsw-alias-label-primary);font-weight:600;background:var(--dsw-alias-bg-layer-3);box-shadow:inset 0 -2px 0 var(--dsw-alias-state-business-primary)}.gw_tabCount{font-size:11px;line-height:16px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_check{flex:none;width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--dsw-alias-state-business-primary)}.gw_check.gap{visibility:hidden}.gw_row.picked{border-color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 6%,transparent)}.gw_selectBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}.gw_selectAll{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--dsw-alias-label-secondary)}.gw_selectAll input{accent-color:var(--dsw-alias-state-business-primary)}.gw_selCount{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-left:auto;font-variant-numeric:tabular-nums}.gw_btnDanger{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.gw_btnDanger:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}.gw_btnDangerSolid{border-color:transparent;background:var(--dsw-alias-state-error-primary);color:#fff}.gw_notice{font-size:12px;line-height:18px;padding:8px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);cursor:pointer;word-break:break-word}.gw_overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000}.gw_dialog{background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;box-shadow:var(--dsw-shadow-lv1);padding:18px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}.gw_dialogTitle{font-size:15px;font-weight:600;line-height:22px}.gw_dialogBody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_dialogList{display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto}.gw_dialogItem{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.gw_dialogName{font-size:13px;font-weight:600}.gw_dialogBreak{font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_dialogWarn{font-size:11px;color:var(--dsw-alias-state-error-primary);font-weight:600}.gw_dialogOk{font-size:11px;color:var(--dsw-alias-state-success-primary)}.gw_dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}.gw_sectTitle.gw_newTitle{color:var(--dsw-alias-state-error-primary)}.gw_queueHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);padding:0 2px 2px}.gw_row.gw_new{border-color:var(--dsw-alias-state-error-primary);border-style:dashed}.gw_sectTitle.gw_discTitle{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.gw_disc{border-color:var(--dsw-alias-state-business-primary);border-style:dotted}.gw_want{width:100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent);border-left:2px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:3px 8px;word-break:break-word}.gw_btnScan{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}.gw_btnScan:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 12%,transparent)}.gw_scanBar{position:relative;height:26px;border-radius:6px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);overflow:hidden;display:flex;align-items:center}.gw_scanFill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 22%,transparent);transition:width .4s ease}.gw_scanText{position:relative;font-size:11px;line-height:16px;padding:0 10px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}.gw_empty{color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:20px;padding:22px 4px;text-align:center}.gw_err{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.gw_fold{flex:none;cursor:pointer;font:inherit;font-size:12px;line-height:18px;width:22px;height:22px;padding:0;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dsw-alias-label-tertiary);transition:background .12s,color .12s}.gw_fold:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.gw_fold.open{color:var(--dsw-alias-label-primary)}.gw_hintBox{display:block;padding:0;margin:2px 0 6px;text-align:left}.gw_hintText{display:block;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);text-align:left}.gw_summary{flex:1 1 100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3);border-radius:6px;padding:2px 8px;margin-top:2px}.gw_restart{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-3);border-radius:10px;padding:10px 14px}.gw_restartText{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}.gw_restartTitle{font-size:13px;font-weight:600;line-height:20px}.gw_restartWhy{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_btnPrimary{background:var(--dsw-alias-state-business-primary);border-color:var(--dsw-alias-state-business-primary);color:#fff;font-weight:600}.gw_btnPrimary:hover:not(:disabled){opacity:.9}.gw_copyTag{flex:none;font-size:10px;line-height:16px;padding:0 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_copies{margin-bottom:6px}.gw_copiesHead{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}.gw_gh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:8px 12px}.gw_ghMain{display:flex;flex-direction:column;gap:1px;min-width:0}.gw_ghLogin{font-size:13px;line-height:18px;font-weight:600;display:flex;align-items:center;gap:6px}.gw_ghMeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_ghRight{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.gw_ghQ{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_ghQ.low{color:var(--dsw-alias-state-error-primary)}.gw_dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.on{background:var(--dsw-alias-state-success-primary)}.gw_dot.off{background:var(--dsw-alias-label-tertiary)}.gw_dev{margin-top:6px;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.gw_devHead{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_devCode{font-size:22px;line-height:30px;font-weight:700;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;user-select:all;cursor:pointer}.gw_devRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.gw_devHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}`;
 
     const zh = {
       label: '已下载项目',
@@ -14,10 +14,16 @@ window.__ModuleLoader__.load({
       busy: '读取中…',
       filter: '筛选项目名或说明…',
       never: '尚未运行',
-      dataAt: '数据时间',
+      dataAt: '上次扫描',
+      hintUpdate: '更新内容',
+      hintAbout: '项目介绍',
+      expand: '展开',
+      collapse: '收起',
+      agoJustNow: '刚刚',
+      agoMinutes: '{n} 分钟前',
+      agoHours: '{n} 小时前',
+      agoDays: '{n} 天前',
       total: '项目',
-      statProjects: '项目',
-      statPlugins: '插件',
       secProjects: '项目',
       secPlugins: '插件',
       secTools: '工具',
@@ -62,6 +68,12 @@ window.__ModuleLoader__.load({
       updateSame: '{n} 项已是最新',
       updateFailed: '{n} 项无法更新：{why}',
       updateNothing: '没有任何变化',
+      restartTitle: '需要重启才能生效',
+      restartWhyChanged: '文件已替换，但当前进程仍在用旧版本',
+      restartWhyLocked: '{names} 的文件被正在运行的程序占用',
+      restartHow: '关闭 DSH 后重新打开即可生效',
+      restartCopy: '复制路径',
+      restartDismiss: '稍后',
       removedLabel: '已卸载',
       vanishedLabel: '目录不见了',
       scan: '扫描',
@@ -74,13 +86,30 @@ window.__ModuleLoader__.load({
       alsoAt: '另有克隆：',
       copiesTitle: '本地其他副本',
       copiesHint: '同一插件在磁盘上还有别的副本，这一行显示的是版本最新的那份',
-      outdated: '有更新',
       current: '已最新',
       failed: '失败',
       loadFailed: '读取失败',
       expand: '展开',
       collapse: '收起',
       empty: '暂无报告。计划任务每天 09:30 运行，或手动执行 github-watch\\run.bat',
+      ghTitle: 'GitHub 账号',
+      ghLoggedOut: '未登录',
+      ghLogin: '登录',
+      ghLoggingIn: '等待浏览器授权…',
+      ghCancel: '取消',
+      ghCanceled: '已取消',
+      ghQuota: '接口额度',
+      ghQuotaLeft: '剩余 {left} / {limit}',
+      ghQuotaAt: '重置于 {t}',
+      ghSource: '凭据位置',
+      ghScopes: '权限',
+      ghNoCli: '没有找到 GitHub CLI（gh）',
+      ghNoCliHint: '装好 gh 后刷新页面；也可以在本页登录，凭据存在 Windows 凭据管理器里。',
+      ghDeviceTitle: '在浏览器里输入这个码',
+      ghDeviceOpen: '打开授权页',
+      ghDeviceWait: '授权完成后本页自动刷新。',
+      ghTimeout: '这次没验上（{state}），账号还在，重新登录即可',
+      ghState: '状态',
     };
     const en = {
       label: 'Local projects',
@@ -89,10 +118,16 @@ window.__ModuleLoader__.load({
       busy: 'Loading…',
       filter: 'Filter by name or note…',
       never: 'never run',
-      dataAt: 'Data from',
+      dataAt: 'Last scan',
+      hintUpdate: 'what changed',
+      hintAbout: 'about',
+      expand: 'Expand',
+      collapse: 'Collapse',
+      agoJustNow: 'just now',
+      agoMinutes: '{n} min ago',
+      agoHours: '{n} h ago',
+      agoDays: '{n} d ago',
       total: 'projects',
-      statProjects: 'projects',
-      statPlugins: 'plugins',
       secProjects: 'Projects',
       secPlugins: 'Plugins',
       secTools: 'Tools',
@@ -137,6 +172,12 @@ window.__ModuleLoader__.load({
       updateSame: '{n} already current',
       updateFailed: '{n} could not update: {why}',
       updateNothing: 'nothing changed',
+      restartTitle: 'restart required',
+      restartWhyChanged: 'files replaced, but this process still has the old ones loaded',
+      restartWhyLocked: '{names} files are held by a running program',
+      restartHow: 'close DSH and open it again',
+      restartCopy: 'Copy path',
+      restartDismiss: 'later',
       removedLabel: 'uninstalled',
       vanishedLabel: 'directory gone',
       scan: 'Scan',
@@ -149,13 +190,30 @@ window.__ModuleLoader__.load({
       alsoAt: 'also cloned at:',
       copiesTitle: 'other local copies',
       copiesHint: 'this plugin exists in more than one place on disk; the row shows the newest version',
-      outdated: 'outdated',
       current: 'current',
       failed: 'failed',
       loadFailed: 'Failed to load',
       expand: 'more',
       collapse: 'less',
       empty: 'No report yet. The task runs daily at 09:30, or run github-watch\\run.bat',
+      ghTitle: 'GitHub account',
+      ghLoggedOut: 'not signed in',
+      ghLogin: 'Sign in',
+      ghLoggingIn: 'waiting for the browser…',
+      ghCancel: 'Cancel',
+      ghCanceled: 'canceled',
+      ghQuota: 'API quota',
+      ghQuotaLeft: '{left} / {limit} left',
+      ghQuotaAt: 'resets {t}',
+      ghSource: 'credential',
+      ghScopes: 'scopes',
+      ghNoCli: 'GitHub CLI (gh) not found',
+      ghNoCliHint: 'Install gh and reload; or sign in here — the credential goes to the Windows Credential Manager.',
+      ghDeviceTitle: 'enter this code in the browser',
+      ghDeviceOpen: 'Open the authorization page',
+      ghDeviceWait: 'This page refreshes once you approve.',
+      ghTimeout: 'this check did not verify ({state}); the account is still there, just sign in again',
+      ghState: 'state',
     };
 
     /**
@@ -221,7 +279,74 @@ window.__ModuleLoader__.load({
         }
       }, []);
 
-      useEffect(() => { load(); }, [load]);
+      // The account is read from the shell-out to `gh`, which costs a network
+      // round trip (~1.6 s) and has nothing to do with the file rows. So it is a
+      // second, independent request: the list paints as soon as the snapshot
+      // lands and the account card fills in whenever it arrives.
+      //
+      // The host answers immediately every time — with what it has cached, or
+      // with `pending: true` while a read is in flight behind it. `pending` means
+      // "not read yet", which must not be rendered as "nobody is signed in", so
+      // one retry is scheduled rather than showing a false logged-out state.
+      const loadGh = useCallback(async (retry) => {
+        let got = null;
+        try {
+          const res = await fetch('/github-watch/api/github', { headers: { accept: 'application/json' } });
+          if (res.ok) got = await res.json();
+        } catch { /* the card is decoration; the rows are the point */ }
+        if (!got) return;
+        setData((prev) => (prev ? { ...prev, github: got } : prev));
+        if (got.pending && retry) setTimeout(() => { loadGh(retry - 1); }, 1200);
+      }, []);
+
+      useEffect(() => { load(); loadGh(3); }, [load, loadGh]);
+
+      // GitHub account. `github` comes in with the snapshot; the login attempt is
+      // the only part that needs its own request, because starting one blocks on
+      // a human finishing in the browser.
+      const [ghBusy, setGhBusy] = useState(false);
+
+      const startLogin = useCallback(async () => {
+        setGhBusy(true);
+        setError('');
+        try {
+          const res = await fetch('/github-watch/api/github/login', {
+            method: 'POST',
+            headers: { accept: 'application/json' },
+          });
+          const r = await res.json();
+          if (r && r.ok === false) setError(r.error || '登录没有开始');
+          await load();
+        } catch (err) {
+          setError(String(err && err.message ? err.message : err));
+        } finally {
+          setGhBusy(false);
+        }
+      }, [load]);
+
+      const cancelLogin = useCallback(async () => {
+        try {
+          await fetch('/github-watch/api/github/cancel', {
+            method: 'POST',
+            headers: { accept: 'application/json' },
+          });
+        } catch { /* nothing to report: the state read below is the truth */ }
+        await load();
+      }, [load]);
+
+      // While an authorization is pending, ask every 2 s. gh itself polls GitHub,
+      // so the page only has to notice when the account flips to logged in; the
+      // interval stops as soon as it does.
+      //
+      // The host drops its cached account state when the login child exits, so
+      // the first read after that comes back `pending` — hence `loadGh(3)`, which
+      // waits for the re-read instead of rendering a stale "logged out".
+      const loginRunning = Boolean(data && data.github && data.github.login && data.github.login.running);
+      useEffect(() => {
+        if (!loginRunning) return undefined;
+        const id = setInterval(() => { loadGh(3); }, 2000);
+        return () => clearInterval(id);
+      }, [loginRunning, loadGh]);
 
       // Scan state. POST returns immediately and the pipeline runs in the host
       // process, so the button cannot show a spinner tied to one fetch: it polls
@@ -283,8 +408,28 @@ window.__ModuleLoader__.load({
       const active = (r) => r.state !== 'muted';
       const shownProjects = projects.filter(match).filter(active).sort(sink);
       const shownPlugins = plugins.filter(match).filter(active).sort(sink);
-      const counts = (data && data.counts) || {};
-      const when = (data && (data.generatedAt || (data.lastRun && data.lastRun.at))) || '';
+      const whenRaw = (data && (data.generatedAt || (data.lastRun && data.lastRun.at))) || '';
+
+      // A timestamp tells you nothing at a glance — you have to subtract it from
+      // the clock in your head. Relative wording answers the question actually
+      // being asked: "is this stale, or did the last scan just run?" Days-old
+      // data and a scan two minutes ago used to look identical on this line.
+      const relTime = (iso) => {
+        if (!iso) return '';
+        const ts = new Date(iso).getTime();
+        if (Number.isNaN(ts)) return String(iso);
+        const diff = Math.max(0, Date.now() - ts);
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return t('agoJustNow');
+        if (mins < 60) return t('agoMinutes').replace('{n}', String(mins));
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return t('agoHours').replace('{n}', String(hrs));
+        return t('agoDays').replace('{n}', String(Math.floor(hrs / 24)));
+      };
+
+      // Re-evaluated on every render, so the label ages while the page sits open
+      // instead of freezing at whatever it said when loaded.
+      const when = relTime(whenRaw);
 
       // -- selection ---------------------------------------------------------
       // Keyed by name, not index: a scan reorders rows (a project that gains an
@@ -303,6 +448,11 @@ window.__ModuleLoader__.load({
       const [busy2, setBusy2] = useState('');
       const [dialog, setDialog] = useState(null);   // delete confirmation
       const [notice, setNotice] = useState('');
+      // Set after an update that needs the host to reload: either a package
+      // changed (the running process still has the old files mapped) or its
+      // files were locked by a live MCP server. Both are solved by restarting.
+      const [restartNeeded, setRestartNeeded] = useState(null);
+      const [restarting, setRestarting] = useState(false);
 
       // Selection follows the tab. It used to be fixed to projects+plugins, so
       // ticking a row in the muted tab updated nothing and "select all" reached
@@ -311,7 +461,6 @@ window.__ModuleLoader__.load({
       // forward reference is fine at call time.
       const selectableFor = (which) => {
         if (which === 'muted') return mutedRows;
-        if (which === 'tool') return [];
         return [...shownProjects, ...shownPlugins];
       };
       const selectable = selectableFor(tab);
@@ -429,6 +578,12 @@ window.__ModuleLoader__.load({
           if (bad.length) parts.push(t('updateFailed').replace('{n}', String(bad.length))
             .replace('{why}', bad.map((b) => `${b.name || ''}: ${b.error || ''}`).join('；').slice(0, 200)));
           setNotice(parts.join(' ｜ ') || t('updateNothing'));
+          // Any change means the running process still holds the old files. A
+          // locked entry is the same situation one step earlier: the files could
+          // not be replaced at all, and a restart is what frees them.
+          if (out.restartNeeded) {
+            setRestartNeeded({ locked: out.locked || [] });
+          }
           load();
         } catch (err) {
           setError(String(err && err.message ? err.message : err));
@@ -437,19 +592,49 @@ window.__ModuleLoader__.load({
         }
       }, [load]);
 
-      const stat = (cls, num, label) => h('div', { className: 'gw_stat ' + cls },
-        h('div', { className: 'gw_num' }, num == null ? '–' : num),
-        h('div', { className: 'gw_lbl' }, label));
-
-      // One row renderer for both sections: the only difference is that a plugin
-      // shows its version where a project shows its kind.
+      // One row renderer for both sections. Both now show a version, because a
+      // project can be a package-manager install as well as a git checkout —
+      // "pypi" as the lead told you where it came from but not what it was.
       const rowOf = (r, i, section) => {
         const cls = statusClass(r);
         const key = section + ':' + r.name + '#' + i;
         const open = Boolean(expanded[key]);
-        const lead = section === 'plugin' ? (r.version ? 'v' + r.version : '') : r.kind;
+        // The version cell used to show only the INSTALLED version, so a row
+        // reading "v0.13.0 有更新" looked like the update target. Showing both
+        // ends of the move in the same cell removes that read.
+        const upRaw = (() => {
+          const m = /上游\s*(v?[\d][\w.\-+]*)/.exec(r.detail || '');
+          return m ? m[1] : '';
+        })();
+        const showArrow = Boolean(upRaw) && r.version
+          && String(upRaw).replace(/^v/i, '') !== String(r.version).replace(/^v/i, '');
+        const lead = r.version
+          ? (showArrow ? 'v' + r.version + ' → ' + upRaw : 'v' + r.version)
+          : (r.kind || '');
+        // Where it came from, stated separately from the status: a row can be
+        // "有更新" without saying whether that update is a git pull or an npm
+        // install, and those are different actions.
+        const origin = r.source || r.kind || '';
         const hasDeps = (r.deps || []).length > 0;
         const hasWork = Boolean(r.work);
+
+        // One hint line per row. TWO different questions, and the answer to
+        // each comes from a different place:
+        //   "there is a newer version — what does it change?"  → release summary
+        //   "I am up to date — what is this thing for?"         → its description
+        // The summary exists whether or not you are behind: it is the newest
+        // upstream release's notes. Showing it on an up-to-date row answered the
+        // first question when the operator was asking the second.
+        const hasPendingUpdate = r.status === '有更新';
+        // The fold carries release notes and nothing else. A project's own
+        // description answered a different question ("what is this for") and
+        // pushed the one line worth reading — what the new version changes —
+        // out of the way. No summary means no fold at all.
+        const hintSource = r.summary || '';
+        const hasHint = Boolean(hintSource);
+        // Neither a summary nor a description means there is nothing to show;
+        // an empty fold that opens onto nothing is worse than no affordance.
+        const foldable = hasHint || hasDeps || hasWork || (r.copies || []).length > 0;
         // The size cell is the reason this list exists: sorted by eye, it answers
         // "what is eating the disk". Reported with the dependency total in
         // parentheses because "rea 2.9 GB" is really "535 MB of rea".
@@ -457,40 +642,16 @@ window.__ModuleLoader__.load({
           fmtMb(r.sizeMb),
           hasDeps ? h('span', { className: 'gw_sizeDeps' }, ' (' + fmtMb(r.own_mb || 0) + ')') : null) : null;
 
-        const details = open ? h('div', { className: 'gw_depBox' },
-          r.path ? h('div', { className: 'gw_depPath' }, r.path) : null,
-          // Extra copies of the same plugin on disk. Only the newest is listed as
-          // the plugin itself, so without this the others are invisible — and one
-          // of them is often an older version some agent left behind.
-          r.copies && r.copies.length
-            ? h('div', { className: 'gw_copies' },
-              h('div', { className: 'gw_copiesHead' },
-                h('span', { className: 'gw_workTitle' }, t('copiesTitle')),
-                h('span', { className: 'gw_workSize' }, String(r.copies.length))),
-              r.copies.map((c, j) => h('div', { className: 'gw_dep gw_depMini', key: 'c' + j },
-                h('span', { className: 'gw_depName' }, c.version ? 'v' + c.version : '—'),
-                h('span', { className: 'gw_depWhy' }, c.profile || ''),
-                h('span', { className: 'gw_depSize' }, c.path))))
-            : null,
-          hasDeps ? h('div', { className: 'gw_depList' },
-            (r.deps || []).map((d, j) => h('div', { className: 'gw_dep' + (d.exists === false ? ' miss' : ''), key: 'd' + j },
-              h('span', { className: 'gw_depName' }, d.name),
-              h('span', { className: 'gw_depWhy' }, d.why),
-              d.local ? h('span', { className: 'gw_depTag' }, t('localBuild')) : null,
-              h('span', { className: 'gw_depSize' }, fmtMb(d.sizeMb))))) : null,
-          hasWork ? h('div', { className: 'gw_work' },
-            h('div', { className: 'gw_workHead' },
-              h('span', { className: 'gw_workTitle' }, t('workTitle')),
-              h('span', { className: 'gw_workSize' }, fmtMb(r.workMb))),
-            h('div', { className: 'gw_depWhy' }, r.work.why || ''),
-            (r.work.items || []).map((it, j) => h('div', { className: 'gw_dep gw_depMini', key: 'w' + j },
-              h('span', { className: 'gw_depName' }, it.name),
-              h('span', { className: 'gw_depSize' }, fmtMb(it.sizeMb))))) : null,
-          r.aliases && r.aliases.length
-            ? h('div', { className: 'gw_depWhy' }, t('alsoAt') + ' ' + r.aliases.join('、'))
-            : null) : null;
+        // The fold holds one thing: the sentence explaining this row. Path,
+        // copies, dependencies and work output used to live here too, which
+        // buried the one line the operator opened the row for under four
+        // sections they had not asked about. Path moved up to the status line;
+        // the rest is still in inventory.json for anyone who wants it.
+        const details = open && hasHint
+          ? h('div', { className: 'gw_depBox' },
+            h('div', { className: 'gw_hintText' }, hintSource))
+          : null;
 
-        const foldable = Boolean(r.descriptionRest) || hasDeps || hasWork;
         // Uninstalled rows cannot be selected: there is nothing left to delete or
         // update, and offering the checkbox invites a no-op that looks like work.
         const canPick = r.state !== 'removed';
@@ -512,22 +673,39 @@ window.__ModuleLoader__.load({
           lead ? h('span', { className: 'gw_kind' }, lead) : null,
           h('span', { className: 'gw_status ' + cls }, r.status),
           size,
-          r.slug ? h('span', { className: 'gw_slug' }, r.slug) : null,
-          r.detail ? h('span', { className: 'gw_detail' }, r.detail) : null,
-          r.description
-            ? h('span', { className: 'gw_desc' },
-              r.description,
-              r.descriptionRest && !open
-                ? h('span', { className: 'gw_moreText' }, '…')
-                : null,
-              foldable
-                ? h('button', {
-                  className: 'gw_more',
-                  onClick: () => setExpanded((prev) => ({ ...prev, [key]: !prev[key] })),
-                  title: open ? t('collapse') : t('expand'),
-                }, open ? t('collapse') : t('expand'))
+          r.slug
+            ? h('span', { className: 'gw_slug' }, r.slug)
+            : (origin ? h('span', { className: 'gw_slug' }, origin) : null),
+          // The expander sits at the far right of the status line, where a reader
+          // looking at "本地 = 上游" naturally ends up. Shown only when there is
+          // something behind it.
+          foldable
+            ? h('button', {
+              className: 'gw_fold' + (open ? ' open' : ''),
+              onClick: () => setExpanded((prev) => ({ ...prev, [key]: !prev[key] })),
+              title: open ? t('collapse') : t('expand'),
+              'aria-expanded': open ? 'true' : 'false',
+            }, open ? '▾' : '▸')
+            : null,
+          // One line holding the status sentence and, at its far right, where
+          // the thing lives. Wrapped together because `gw_row` is a wrapping
+          // flex container: as siblings, a full-width detail would push the path
+          // onto a line of its own, which is not what "on the right of that line"
+          // means.
+          (r.detail || r.path)
+            ? h('div', { className: 'gw_detailLine' },
+              r.detail ? h('span', { className: 'gw_detail' }, r.detail) : null,
+              r.path
+                ? h('span', { className: 'gw_detailPath', title: r.path }, r.path)
                 : null)
             : null,
+          // What the new version changed, in its own slot. Kept out of `detail`
+          // so the status sentence stays about versions and this stays about
+          // content — mixing them made both harder to scan.
+          // Nothing about the description belongs on the summary line. It used
+          // to render here as well as inside the fold, so an open row printed
+          // the same sentence twice — once inline with a "收起" button, once in
+          // the panel. The fold is the only place it shows.
           details);
       };
 
@@ -536,19 +714,6 @@ window.__ModuleLoader__.load({
         rows.length === 0
           ? h('div', { className: 'gw_emptySmall' }, t('noneMatch'))
           : h('div', { className: 'gw_list' }, rows.map((r, i) => rowOf(r, i, kind))));
-
-      const toolRow = (r, i) => h('div', { className: 'gw_row', key: 'tool' + i },
-        h('span', { className: 'gw_dot ' + (r.status === '已安装' ? 'current' : 'gone') }),
-        h('span', { className: 'gw_name' }, r.name),
-        h('span', { className: 'gw_kind' }, 'v' + r.version),
-        h('span', { className: 'gw_status ' + (r.status === '已安装' ? 'current' : 'gone') }, r.status),
-        h('span', { className: 'gw_size' }, fmtMb(r.sizeMb)),
-        r.slug ? h('span', { className: 'gw_slug' }, r.slug) : null,
-        r.why ? h('span', { className: 'gw_detail' }, r.why) : null,
-        r.path ? h('span', { className: 'gw_detail' }, r.path) : null);
-
-      const tools = (data && data.tools) || [];
-      const shownTools = tools.filter((r) => !q || (r.name + ' ' + r.why).toLowerCase().indexOf(q) >= 0);
 
       // Which list is showing. Projects and plugins used to stack, so reaching
       // the plugins meant scrolling past eight project rows — the plugins were
@@ -568,10 +733,6 @@ window.__ModuleLoader__.load({
           onClick: () => setTab('plugin'),
         }, t('secPlugins'), h('span', { className: 'gw_tabCount' }, shownPlugins.length)),
         h('button', {
-          className: 'gw_tab' + (tab === 'tool' ? ' active' : ''),
-          onClick: () => setTab('tool'),
-        }, t('secTools'), h('span', { className: 'gw_tabCount' }, shownTools.length)),
-        h('button', {
           className: 'gw_tab' + (tab === 'muted' ? ' active' : ''),
           onClick: () => setTab('muted'),
         }, t('secMuted'), h('span', { className: 'gw_tabCount' }, mutedRows.length)));
@@ -580,14 +741,9 @@ window.__ModuleLoader__.load({
         ? sectionBody(shownProjects, 'project')
         : tab === 'plugin'
           ? sectionBody(shownPlugins, 'plugin')
-          : tab === 'muted'
-            ? (mutedRows.length === 0
-                ? h('div', { className: 'gw_emptySmall' }, t('noMuted'))
-                : h('div', { className: 'gw_list' }, mutedRows.map((r, i) => rowOf(r, i, 'muted'))))
-            : shownTools.length === 0
-              ? h('div', { className: 'gw_emptySmall' }, t('noneMatch'))
-              : h('div', { className: 'gw_list' }, shownTools.map(toolRow));
-      const toolTotal = tools.reduce((n, r) => n + (r.sizeMb || 0), 0);
+          : (mutedRows.length === 0
+              ? h('div', { className: 'gw_emptySmall' }, t('noMuted'))
+              : h('div', { className: 'gw_list' }, mutedRows.map((r, i) => rowOf(r, i, 'muted'))));
 
       // Two different kinds of "not curated yet", kept apart on purpose:
       //   queue      — a session reported it; we know why it was fetched
@@ -612,26 +768,95 @@ window.__ModuleLoader__.load({
           r.path ? h('span', { className: 'gw_detail' }, r.path) : null,
           r.description ? h('span', { className: 'gw_desc' }, r.description) : null))))
 
-      // Reported by other sessions through ~/.agents/AGENTS.md — downloaded but
-      // not yet accepted into inventory.json. Shown first and highlighted,
-      // because a row here means "something arrived that you did not curate".
-      const queue = (data && data.queue) || [];
-      const queueSection = queue.length === 0 ? null : h('div', { className: 'gw_section' },
-        h('div', { className: 'gw_sectHead' },
-          h('span', { className: 'gw_sectTitle gw_newTitle' }, t('secQueue')),
-          h('span', { className: 'gw_sectCount' }, queue.length)),
-        h('div', { className: 'gw_queueHint' }, t('queueHint')),
-        h('div', { className: 'gw_list' }, queue.map((r, i) => h('div', { className: 'gw_row gw_new', key: 'q' + i },
-          h('span', { className: 'gw_dot updated' }),
-          h('span', { className: 'gw_name' }, r.name),
-          r.method ? h('span', { className: 'gw_kind' }, r.method) : null,
-          h('span', { className: 'gw_status updated' }, t('pending')),
-          r.version ? h('span', { className: 'gw_size' }, r.version) : null,
-          r.slug ? h('span', { className: 'gw_slug' }, r.slug) : null,
-          r.at ? h('span', { className: 'gw_when' }, r.at.replace('T', ' ').slice(0, 16)) : null,
-          r.path ? h('span', { className: 'gw_detail' }, r.path) : null,
-          r.want ? h('span', { className: 'gw_want' }, t('wantLabel') + ' ' + r.want) : null,
-          r.note ? h('span', { className: 'gw_desc' }, r.note) : null))));
+      // The account this page spends GitHub's quota as. Two distinct states, and
+      // they are not the same thing:
+      //   no gh at all      — the checker falls back to 60 requests/hour
+      //   gh but logged out — the checker has no token to spend
+      // Both look like "quota problems" from the rows, so the cause belongs here
+      // rather than being inferred from a failed check.
+      const gh = data && data.github ? data.github : null;
+      const ghLoginState = (gh && gh.login) || {};
+
+      // `pending` means the host has not finished its first read yet. Rendering
+      // the card then would have to guess, and the only guess available —
+      // `available` missing — reads as "gh is not installed", which is a claim
+      // about the machine that has not been checked. So the card waits.
+      const ghCard = !gh || gh.pending ? null
+        : !gh.available
+          ? h('div', { className: 'gw_gh' },
+            h('span', { className: 'gw_dot off' }),
+            h('div', { className: 'gw_ghMain' },
+              h('div', { className: 'gw_ghLogin' }, t('ghNoCli')),
+              h('div', { className: 'gw_ghMeta' }, t('ghNoCliHint'))))
+          : h('div', { className: 'gw_gh' },
+            // gh reports a TLS timeout as state:"timeout" and keeps the account,
+            // so the dot follows `loggedIn`, not `state`; a timeout is then a
+            // note under the name rather than a claim that nobody is signed in.
+            h('span', { className: gh.loggedIn ? 'gw_dot on' : 'gw_dot off' }),
+            h('div', { className: 'gw_ghMain' },
+              h('div', { className: 'gw_ghLogin' },
+                gh.active && gh.active.login ? gh.active.login : t('ghLoggedOut'),
+                gh.active && gh.active.host ? h('span', { className: 'gw_ghMeta' }, '@' + gh.active.host) : null),
+              h('div', { className: 'gw_ghMeta' },
+                [
+                  gh.active && gh.active.tokenSource ? t('ghSource') + ' ' + gh.active.tokenSource : '',
+                  gh.active && gh.active.scopes ? t('ghScopes') + ' ' + gh.active.scopes : '',
+                  gh.loggedIn && gh.active && gh.active.state && gh.active.state !== 'success'
+                    ? t('ghTimeout').replace('{state}', gh.active.state)
+                    : '',
+                ].filter(Boolean).join(' ｜ '))),
+            h('div', { className: 'gw_ghRight' },
+              gh.rate
+                ? h('span', {
+                  className: 'gw_ghQ' + (gh.rate.remaining < 200 ? ' low' : ''),
+                  title: gh.rate.resetAt ? t('ghQuotaAt').replace('{t}', String(gh.rate.resetAt).slice(11, 19) + 'Z') : '',
+                }, t('ghQuotaLeft')
+                  .replace('{left}', String(gh.rate.remaining))
+                  .replace('{limit}', String(gh.rate.limit)))
+                : null,
+              gh.loggedIn
+                ? h('button', {
+                  className: 'gw_btn',
+                  disabled: Boolean(ghBusy) || Boolean(ghLoginState.running),
+                  onClick: startLogin,
+                  title: '换一个账号或重新授权',
+                }, ghLoginState.running ? t('ghLoggingIn') : t('ghLogin'))
+                : h('button', {
+                  className: 'gw_btn',
+                  disabled: Boolean(ghBusy) || Boolean(ghLoginState.running),
+                  onClick: startLogin,
+                }, ghLoginState.running ? t('ghLoggingIn') : t('ghLogin')),
+              ghLoginState.running
+                ? h('button', { className: 'gw_btn', onClick: cancelLogin }, t('ghCancel'))
+                : null));
+
+      // The device code only exists while authorization is pending. It is shown
+      // large and selectable: the operator has to retype it in another window,
+      // and gh has already put it on the clipboard so a click is enough.
+      const ghDevice = ghLoginState.running && ghLoginState.code
+        ? h('div', { className: 'gw_dev' },
+          h('div', { className: 'gw_devHead' }, t('ghDeviceTitle')),
+          h('div', {
+            className: 'gw_devCode',
+            title: '点击选中',
+            onClick: (e) => {
+              // Best effort: if the clipboard API is denied the text is still
+              // rendered selectable, which is what the operator needs.
+              try {
+                e.currentTarget.parentNode && window.getSelection().selectAllChildren(e.currentTarget);
+              } catch { /* selection is a convenience, not the mechanism */ }
+            },
+          }, ghLoginState.code),
+          h('div', { className: 'gw_devRow' },
+            h('a', {
+              className: 'gw_btn',
+              href: ghLoginState.url || 'https://github.com/login/device',
+              target: '_blank',
+              rel: 'noreferrer',
+            }, t('ghDeviceOpen')),
+            h('span', { className: 'gw_devHint' }, t('ghDeviceWait'))))
+        : null;
+
 
       return h('div', { className: 'gw' },
         h('style', null, CSS),
@@ -639,11 +864,16 @@ window.__ModuleLoader__.load({
           h('div', { className: 'gw_title' }, t('title')),
           h('div', { className: 'gw_when' }, when ? t('dataAt') + ' ' + when : t('never'))),
         error ? h('div', { className: 'gw_err' }, t('loadFailed') + ': ' + error) : null,
-        h('div', { className: 'gw_stats' },
-          stat('', projects.length, t('statProjects')),
-          stat('', plugins.length, t('statPlugins')),
-          stat('', tools.length, t('statTools')),
-          queue.length ? stat('hot', queue.length, t('statPending')) : stat('hot', counts.updated, t('outdated'))),
+        // Account first, for the same reason a receipt names the card before the
+        // line items: every row below is a claim paid for out of this account's
+        // quota, so "who am I spending it as" comes before "what did it find".
+        ghCard,
+        ghDevice,
+        // The bar holds only the search field and the scan button. A Refresh
+        // button used to sit here; it re-read the same three files and
+        // re-rendered, which looked identical whenever nothing had changed, and
+        // the scan already reloads on completion. "上次扫描" above answers what
+        // the button was meant to answer: how fresh is this.
         h('div', { className: 'gw_bar' },
           h('div', { className: 'gw_search' },
             h('input', {
@@ -658,11 +888,7 @@ window.__ModuleLoader__.load({
             title: t('scanHint'),
           }, scan.running
             ? t('scanning') + (scan.step ? ' ' + scan.step : '')
-            : t('scan')),
-          h('button', { className: 'gw_btn', onClick: load, disabled: busy },
-            busy ? t('busy') : t('refresh')),
-          toolTotal ? h('span', { className: 'gw_when' },
-            t('toolsTotal') + ' ' + fmtMb(toolTotal)) : null),
+            : t('scan'))),
         // Selection bar. Only rendered once something is ticked or a selection
         // exists, so the default view stays quiet.
         selectable.length > 0
@@ -674,6 +900,10 @@ window.__ModuleLoader__.load({
               ? h('span', { className: 'gw_selCount' },
                 t('selectedN').replace('{n}', String(selectedNames.length)))
               : h('span', { className: 'gw_selCount' }, t('noneSelected')),
+            // Mute only means something for a DSH plugin: it stops the plugin
+            // from being loaded. A command-line tool has no such switch, so the
+            // button is omitted rather than shown disabled — a greyed control
+            // reads as "temporarily unavailable", which is a different claim.
             tab === 'muted'
               ? h('button', {
                 className: 'gw_btn',
@@ -699,6 +929,26 @@ window.__ModuleLoader__.load({
             }, t('deleteSelected')))
           : null,
         notice ? h('div', { className: 'gw_notice', onClick: () => setNotice('') }, notice) : null,
+        // Offered only after an update that cannot take effect in-process. The
+        // button is the whole point: telling someone "please restart" and
+        // leaving them to find the window is how a fix goes unused.
+        restartNeeded
+          ? h('div', { className: 'gw_restart' },
+            h('div', { className: 'gw_restartText' },
+              h('div', { className: 'gw_restartTitle' }, t('restartTitle')),
+              h('div', { className: 'gw_restartWhy' },
+                restartNeeded.locked && restartNeeded.locked.length
+                  ? t('restartWhyLocked').replace('{names}', restartNeeded.locked.join('、'))
+                  : t('restartWhyChanged'))),
+            // No Restart button: this plugin runs inside the host it would have
+            // to restart, and spawning a replacement then exiting crashed the app
+            // instead of reloading it. The instruction is the honest deliverable.
+            h('span', { className: 'gw_restartHow' }, t('restartHow')),
+            h('button', {
+              className: 'gw_btn',
+              onClick: () => setRestartNeeded(null),
+            }, t('restartDismiss')))
+          : null,
         scan.running
           ? h('div', { className: 'gw_scanBar' },
             h('div', {
@@ -715,7 +965,6 @@ window.__ModuleLoader__.load({
                 : scan.step ? ' ' + scan.step : '') +
               ' · ' + Math.round((scan.progress || 0) * 100) + '%'))
           : null,
-        queueSection,
         discoveredSection,
         tabs,
         tabBody,

@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-watch",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "DSH Settings page that lists every GitHub project on this machine, checks upstream for updates, and can update, mute or delete them",
   "keywords": [
@@ -19,19 +19,18 @@
     ".": "./index.js",
     "./client": "./client.js",
     "./locale/*.json": "./locale/*.json",
-    "./icon": "./icon.svg"
+    "./icon": "./icon.svg",
+    "./lib/*.mjs": "./lib/*.mjs"
   },
   "files": [
     "index.js",
     "client.js",
     "cordis.patch.yml",
-    "config.json",
     "locale/*.json",
     "icon.svg",
     "README.md",
     "LICENSE",
-    "scripts/*.py",
-    "scripts/README.md"
+    "lib/*.mjs"
   ],
   "dsh": {
     "bundle": {
@@ -47,7 +46,7 @@
     }
   },
   "engines": {
-    "dsh": ">=0.2.1-rc.2 <0.3.0"
+    "dsh": ">=0.2.1-rc.2 <0.3.0",
+    "node": ">=18.0.0"
   }
 }
-
