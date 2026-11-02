@@ -19,6 +19,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { isolate } from './helpers.mjs'
@@ -92,12 +93,17 @@ test('junk input is refused rather than throwing', () => {
   }
 })
 
-test('a release binary under Programs is deletable', () => {
+test('a release binary under Programs is deletable when Programs is scanned', () => {
   // This is the concrete case that exposed the drift: the scanner walks
   // %LOCALAPPDATA%\Programs, so an installed release shows up as a row, and the
   // delete button used to answer "路径不在允许范围内" for it.
+  //
+  // The directory is conditional — `roots()` only adds Programs when it exists —
+  // so the assertion has to be conditional too. A CI runner has no such folder,
+  // and an unconditional assertion here failed there while the code was correct.
   const local = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
   const programs = join(local, 'Programs')
+  if (!existsSync(programs)) return
   assert.equal(isSafePath(join(programs, 'orca')), true, 'a scanned release cannot be deleted')
   assert.equal(isSafePath(programs), false, 'the Programs root itself is not a project')
 })
