@@ -25,17 +25,34 @@ function makeReact(presets) {
   // State is assigned by call order, not by initial value: `data` and `dialog`
   // both start as null, so keying on the initial value would put the snapshot
   // into the confirm dialog. `data` is the first useState in Watch().
+  //
+  // The view flag is the one exception, and it is keyed on its initial value
+  // rather than an index: 'projects' is the only string state that starts with
+  // that word, so adding or removing a state above it cannot silently point the
+  // preset at the wrong slot the way a hard-coded index would.
   let n = 0
+  let viewSeen = false
   return {
-    createElement: (type, props, ...children) => ({
-      type,
-      props: props || {},
-      children: children.flat(Infinity).filter((c) => c != null && c !== false),
-    }),
+    createElement: (type, props, ...children) => {
+      const built = {
+        type,
+        props: props || {},
+        children: children.flat(Infinity).filter((c) => c != null && c !== false),
+      }
+      // Function components get invoked here, the way React would. Without
+      // this a panel delegated from another plugin renders as a bare node and
+      // every assertion about its content silently passes on nothing.
+      return typeof type === 'function' ? type(props || {}) : built
+    },
     useState(init) {
       const i = n++
       const base = typeof init === 'function' ? init() : init
-      return [i === 0 && presets.firstLoad !== undefined ? presets.firstLoad : base, () => {}]
+      if (i === 0 && presets.firstLoad !== undefined) return [presets.firstLoad, () => {}]
+      if (!viewSeen && base === 'projects' && presets.view !== undefined) {
+        viewSeen = true
+        return [presets.view, () => {}]
+      }
+      return [base, () => {}]
     },
     useEffect() {},
     useCallback: (fn) => fn,
@@ -61,6 +78,18 @@ function classes(node, out = []) {
   if (node.type === 'style') return out
   if (node.props && node.props.className) out.push(String(node.props.className))
   classes(node.children, out)
+  return out
+}
+
+// The <style> text, which `text` and `classes` deliberately skip. Rules aimed at
+// another plugin's DOM are only visible here, so hiding the host panel's title
+// block needs a test that reads the stylesheet rather than the tree.
+function styles(node, out = []) {
+  if (node == null || node === false) return out
+  if (Array.isArray(node)) { node.forEach((n) => styles(n, out)); return out }
+  if (typeof node !== 'object') return out
+  if (node.type === 'style') { out.push(String(node.children)); return out }
+  styles(node.children, out)
   return out
 }
 
@@ -166,3 +195,22 @@ for (const [label, presets, want] of scenarios) {
     assert.ok(checks['no stats bar'], label + ': the stats bar came back')
   })
 }
+
+// What is left of the old second view is the page it lived on: one list, one bar,
+// and the button that says what it does.
+
+test('renders: the page carries one list, its bar, and the check-update button', async () => {
+  const tree = await render({ firstLoad: loaded({ github: GH_OK }) })
+  const cls = classes(tree).join(' ')
+  const t = text(tree)
+  assert.ok(/gw_row\b/.test(cls), 'the page drew no rows')
+  assert.ok(/gw_bar\b/.test(cls), 'the filter and scan bar is gone')
+  // The button does the same thing as the word the skills-manager panel uses for
+  // its own button, so it says the same word. "扫描" described the disk walk,
+  // which is only one of the three steps and the shortest one.
+  assert.ok(t.includes('检查更新'), 'the scan button still calls itself something else')
+  assert.ok(t.includes('本机 GitHub 项目'), 'the title does not name the page')
+  // One list means no leftover second view: a kept container or row class would
+  // render an empty box under the real one.
+  assert.ok(!/gw_switch|gw_skList|gw_skRow|gw_hostPanel/.test(cls), 'markup from the removed view is still drawn')
+})

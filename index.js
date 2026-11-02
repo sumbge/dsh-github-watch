@@ -2,22 +2,26 @@
  * GitHub Watch — host half.
  *
  * The checking is not this plugin's job: `lib/check.mjs` already does it
- * (git ls-remote / GitHub API / npm, one row per repository) and a Windows
- * scheduled task runs it daily at 09:30. This row exists so the result is
- * *visible inside DSH* — it reads the two files that script writes and serves
- * them to the Settings page.
+ * (git ls-remote / GitHub API / npm / PyPI, one row per repository) and writes
+ * a report. This row exists so the result is *visible inside DSH* — it reads
+ * the files that run wrote and serves them to the Settings page.
  *
  * The split is deliberate. A plugin that shelled out to git on every page load
  * would take 30 s to render and would hit the network each time Settings opens.
  * Reading two files costs nothing, and "数据时间 HH:MM" is the honest label —
  * it says when the data was measured, not when you happened to look.
+ *
+ * Nothing here runs on a timer. The scan happens when someone presses 检查更新,
+ * or when an update lands and the steps are re-run to confirm the new version
+ * is actually installed.
  */
 import { readFile, stat, readdir, rm, writeFile, rename } from 'node:fs/promises'
 import { readFileSync, existsSync, mkdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join, dirname, resolve as resolvePath } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { roots as scannerRoots } from './lib/config.mjs'
 
 export const name = 'github-watch'
 // Deliberately NOT a static `inject: ['webServer']`. A plugin that hard-requires
@@ -618,7 +622,11 @@ export function parseReport(md) {
     let upstream = ''
     const um = /上游\s*(v?[\d][\w.\-+]*)/.exec(detail || '')
     if (um) upstream = um[1].trim()
-    const summary = String(cells[5] || '').trim()
+    // The check step joins release-note bullets with real newlines and writes them
+    // as a literal "\n" so the row survives being a markdown table cell. Turning
+    // them back means the page can show one change per line; leaving them literal
+    // printed "\n" in the middle of the sentence.
+    const summary = String(cells[5] || '').replace(/\\n/g, '\n').trim()
     rows.push({ project, kind, status, detail, upstream, summary })
   }
   return { generatedAt, counts, rows }
@@ -758,8 +766,9 @@ async function readQueue() {
 
 /** The curated registry: which projects and plugins this page shows. */
 async function readInventory() {
+  const empty = { projects: [], plugins: [], tools: [], discovered: [], scannedAt: null }
   const raw = await readText(join(WATCH_DIR, 'inventory.json'))
-  if (!raw) return { projects: [], plugins: [], tools: [], discovered: [], scannedAt: null }
+  if (!raw) return empty
   try {
     const data = JSON.parse(raw.replace(/^\uFEFF/, ''))
     return {
@@ -770,7 +779,7 @@ async function readInventory() {
       scannedAt: data.scanned_at || null,
     }
   } catch {
-    return { projects: [], plugins: [], tools: [], discovered: [], scannedAt: null }
+    return empty
   }
 }
 
@@ -807,7 +816,7 @@ async function readWatched() {
  *   custom        — deps flagged `local: true`; edited in place, no upstream to refetch
  *   work          — `work` output; analysis the operator produced, unrecoverable
  */
-async function previewDelete(name) {
+export async function previewDelete(name) {
   const inv = await readInventory()
   const all = [...inv.projects, ...inv.plugins, ...(inv.tools || [])]
   const target = all.find((p) => p.name === name)
@@ -827,25 +836,28 @@ async function previewDelete(name) {
 
   const own = await dirSize(path)
   let totalBytes = own.bytes
+  let anyTruncated = own.truncated
   reinstallable += own.mb
-  rows.push({ label: '项目本体', mb: own.mb, kind: 'reinstallable', path })
+  rows.push({ label: '项目本体', mb: own.mb, kind: 'reinstallable', path, truncated: own.truncated })
 
   for (const d of target.deps || []) {
     const s = await dirSize(d.path)
     totalBytes += s.bytes
+    anyTruncated = anyTruncated || s.truncated
     if (d.local) custom += s.mb
     else reinstallable += s.mb
     rows.push({ label: d.name, mb: s.mb,
                 kind: d.local ? 'custom' : 'reinstallable',
-                why: d.why || '', path: d.path })
+                why: d.why || '', path: d.path, truncated: s.truncated })
   }
 
   if (target.work) {
     const s = await dirSize(target.work.path)
     totalBytes += s.bytes
+    anyTruncated = anyTruncated || s.truncated
     work += s.mb
     rows.push({ label: '作业产出', mb: s.mb, kind: 'work',
-                why: target.work.why || '', path: target.work.path })
+                why: target.work.why || '', path: target.work.path, truncated: s.truncated })
   }
 
   return {
@@ -856,34 +868,44 @@ async function previewDelete(name) {
     rows,
     totalMb: Math.round((reinstallable + custom + work) * 10) / 10,
     totalBytes,
+    // A count that stopped early is a lower bound. The dialog says "至少" for it
+    // rather than presenting a partial walk as the whole directory.
+    truncated: anyTruncated,
     reinstallableMb: Math.round(reinstallable * 10) / 10,
     customMb: Math.round(custom * 10) / 10,
     workMb: Math.round(work * 10) / 10,
     // Say the risk in words, so the confirm step is a decision and not arithmetic.
-    warning: work > 0
-      ? '其中作业产出是分析结果，删了无法恢复'
-      : custom > 0
-        ? '其中有本机改过的依赖，上游已无对应版本'
-        : '全部可以重新下载',
+    // A truncated walk gets its own sentence and outranks the others: the size
+    // above is a lower bound, and telling someone "全部可以重新下载" about a
+    // directory that was never fully read would be a guess wearing a fact's coat.
+    warning: anyTruncated
+      ? '目录太大，大小只统计了一部分（至少这么多），实际可能更多'
+      : work > 0
+        ? '其中作业产出是分析结果，删了无法恢复'
+        : custom > 0
+          ? '其中有本机改过的依赖，上游已无对应版本'
+          : '全部可以重新下载',
   }
 }
 
 /**
  * Roots a delete is allowed to touch.
  *
- * Built from the real home directory rather than a literal name, so the guard
- * works on any machine and carries no one's username into a public repo. The
- * check exists to stop a malformed `path` in inventory.json from becoming
- * `Remove-Item C:\`, so it errs toward refusing: an unrecognised layout means
- * the operator must say where their projects are.
+ * Derived from the scanner's own roots rather than rebuilt here. The previous
+ * version kept a second copy of the rules and drifted: it read
+ * `DSH_GITHUB_WATCH_ROOTS` but not `config.json`, so a root declared the
+ * documented way showed up in the list and then refused to be deleted — the
+ * scanner could see a project the delete button would not touch. One resolver,
+ * used by both, is the only version of this that stays true.
+ *
+ * The guard still errs toward refusing, because the thing it stops is a
+ * malformed `path` in inventory.json becoming `Remove-Item C:\`.
  */
 function allowedRoots() {
-  const home = homedir().toLowerCase().replace(/\//g, '\\')
-  const roots = ['desktop', 'documents', 'downloads'].map((d) => `${home}\\${d}\\`)
-  // Whatever extra roots the operator declared for the scanner.
-  for (const extra of String(process.env.DSH_GITHUB_WATCH_ROOTS || '').split(';')) {
-    const e = extra.trim().toLowerCase().replace(/\//g, '\\')
-    if (e) roots.push(e.endsWith('\\') ? e : e + '\\')
+  const roots = []
+  for (const [path] of scannerRoots()) {
+    const low = resolvePath(String(path)).toLowerCase().replace(/\//g, '\\')
+    roots.push(low.endsWith('\\') ? low : low + '\\')
   }
   return roots
 }
@@ -922,50 +944,134 @@ function isProfilePackagePath(low) {
   return false
 }
 
-function isSafePath(p) {
-  if (!p || !/^[a-zA-Z]:\\/.test(p)) return false
-  const low = p.toLowerCase().replace(/\//g, '\\')
-  // Bare roots and drive letters are never a project.
-  if (low.replace(/\\+$/, '').split('\\').length < 3) return false
+export function isSafePath(p) {
+  if (!p || typeof p !== 'string') return false
+  if (!/^[a-zA-Z]:[\\/]/.test(p)) return false
+
+  // `..` never appears in a path this plugin writes, so one in the input is a
+  // signal rather than a case to quietly normalise away. This is the check that
+  // stops traversal: the first version compared strings and let
+  // `...\\Desktop\\..\\..\\Windows\\System32` through, because it starts with the
+  // Desktop prefix and means something else entirely to the OS.
+  if (p.split(/[\\/]/).some((seg) => seg === '..' || seg === '.')) return false
+
+  // Resolving afterwards cannot change the answer for any input that reaches
+  // here — the segment check above already refused every form where it would.
+  // It is kept as a second line of defence, and the test file says so plainly
+  // rather than implying a test proves it load-bearing.
+  let resolved
+  try {
+    resolved = resolvePath(p)
+  } catch {
+    return false
+  }
+  const low = resolved.toLowerCase().replace(/\//g, '\\')
+  const parts = low.replace(/\\+$/, '').split('\\').filter(Boolean)
+  // `C:` on its own, or `C:\\foo` — neither is a project.
+  if (parts.length < 2) return false
   if (isProfilePackagePath(low)) return true
-  return allowedRoots().some((r) => low.startsWith(r))
+
+  const withSep = low.endsWith('\\') ? low : low + '\\'
+  return allowedRoots().some((r) => {
+    if (!withSep.startsWith(r)) return false
+    // The root itself is not a project. Deleting `~\\Desktop` would take every
+    // project with it, and it is exactly the path a truncated inventory entry
+    // would leave behind.
+    const rest = withSep.slice(r.length).replace(/\\+$/, '')
+    return rest.length > 0
+  })
 }
 
-/** Recursive size, unbounded: an undercount here would make a delete look cheaper. */
-async function dirSize(path) {
+/**
+ * How much a delete would free.
+ *
+ * Bounded on purpose. An unbounded walk of one project with a `node_modules`
+ * took 19.9 s, which is the whole interaction budget for a click that is only
+ * supposed to open a confirmation dialog — and a 709 MB install never finished
+ * at all. The number the dialog shows is a decision aid, not an audit, so a
+ * close answer that arrives in time beats an exact one that does not.
+ *
+ * Three limits, all reported rather than hidden:
+ *
+ *   - `stat` runs in a small pool instead of one file at a time. The previous
+ *     version awaited each entry in sequence, which on Windows is dominated by
+ *     per-call latency rather than by disk throughput.
+ *   - the walk stops after `maxEntries` files or `maxMs`, whichever comes first,
+ *     and says so in `truncated` — an undercount presented as exact would make a
+ *     delete look cheaper than it is.
+ *   - symlinks are skipped rather than followed, so a junction cannot pull a
+ *     second unrelated tree into the total or loop back on itself.
+ *
+ * The two limits are parameters with production defaults rather than bare
+ * constants. Reaching them by brute force would mean writing twenty thousand
+ * files in a test — 48 s on this machine, for a code path that only differs by
+ * which branch flips `truncated`.
+ */
+const SIZE_MAX_ENTRIES = 20000
+const SIZE_MAX_MS = 2500
+const SIZE_WORKERS = 16
+
+export async function dirSize(path, limits = {}) {
+  const maxEntries = limits.maxEntries ?? SIZE_MAX_ENTRIES
+  const maxMs = limits.maxMs ?? SIZE_MAX_MS
   let bytes = 0
   let files = 0
-  async function walk(p) {
-    let entries
-    try {
-      entries = await readdir(p, { withFileTypes: true })
-    } catch {
-      return
-    }
-    for (const e of entries) {
-      const child = join(p, e.name)
-      if (e.isDirectory()) {
-        if (e.name === '.git' || e.name === 'node_modules') {
-          const s = await dirSize(join(child))
-          bytes += s.bytes
-          files += s.files
+  let truncated = false
+  const started = Date.now()
+
+  // A queue of directories plus a fixed pool of workers draining it. Iterative
+  // rather than recursive: the depth of a `node_modules` tree is unbounded and
+  // every frame here would be a real stack frame.
+  const queue = [path]
+  let head = 0
+
+  const worker = async () => {
+    for (;;) {
+      if (truncated) return
+      if (head >= queue.length) return
+      const dir = queue[head]
+      head += 1
+
+      if (Date.now() - started > maxMs) { truncated = true; return }
+
+      let entries
+      try {
+        entries = await readdir(dir, { withFileTypes: true })
+      } catch {
+        continue
+      }
+      for (const e of entries) {
+        // A junction reports neither directory nor file, so it falls through
+        // both branches below without being followed. Measured on Windows:
+        // isDirectory()=false, isFile()=false, isSymbolicLink()=true.
+        if (e.isDirectory()) {
+          queue.push(join(dir, e.name))
           continue
         }
-        await walk(child)
-      } else if (e.isFile()) {
+        if (!e.isFile()) continue
+        files += 1
+        if (files > maxEntries) { truncated = true; return }
         try {
-          const st = await stat(child)
-          bytes += st.size
-          files += 1
-        } catch { /* racing deletion: ignore */ }
+          bytes += (await stat(join(dir, e.name))).size
+        } catch {
+          /* deleted while we walked: the total stays honest about what we saw */
+        }
       }
     }
   }
-  await walk(path)
+
+  await Promise.all(Array.from({ length: SIZE_WORKERS }, worker))
+
   // `mb` is rounded for display, but `bytes` is the truth: a 32 KB project
   // rounds to 0.0 MB, and "freed 0 MB" reads as "nothing was deleted" when in
   // fact something was. Callers that report to the operator use bytes.
-  return { bytes, files, mb: Math.round((bytes / 1048576) * 10) / 10 }
+  return {
+    bytes,
+    files,
+    truncated,
+    elapsedMs: Date.now() - started,
+    mb: Math.round((bytes / 1048576) * 10) / 10,
+  }
 }
 
 /**
@@ -1094,14 +1200,49 @@ function runGit(cwd, args) {
     let err = ''
     child.stdout?.on('data', (b) => { out += b.toString('utf8') })
     child.stderr?.on('data', (b) => { err += b.toString('utf8') })
-    const timer = setTimeout(() => { try { child.kill() } catch { /* gone */ } }, 120000)
+    // `git` is also a launcher: it starts upload-pack/fetch-pack and the
+    // credential helpers they ask for, so a timeout has to reach the tree.
+    const timer = setTimeout(() => { killTree(child) }, 120000)
     child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out, err: String(e) }) })
     child.on('close', (code) => { clearTimeout(timer); resolve({ code, out, err }) })
   })
 }
 
 /** Same contract as runGit, for the package managers that install tools. */
-function runCmd(file, args, timeoutMs = 180000, cwd = undefined) {
+/**
+ * Kill a process *and* everything it started.
+ *
+ * `child.kill()` signals the one process we spawned. That is enough when the
+ * child is the work, and wrong when it is a launcher: `pnpm add` is node running
+ * pnpm's entry script, which spawns the real installer, which spawns lifecycle
+ * scripts. Killing the parent leaves the rest running with no one watching — an
+ * update that was abandoned but is still writing to node_modules, which is worse
+ * than one that never started.
+ *
+ * On Windows the tree is reachable through `taskkill /T`, which is the only
+ * interface that walks the parent chain. Elsewhere, signalling the process group
+ * does the same job, which needs `detached` at spawn time — noted here rather
+ * than half-done, because this plugin runs on Windows.
+ */
+export function killTree(child) {
+  if (!child || child.killed) return
+  const pid = child.pid
+  if (!pid) return
+  if (process.platform === 'win32') {
+    try {
+      spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], {
+        windowsHide: true,
+        stdio: 'ignore',
+        timeout: 15000,
+      })
+    } catch {
+      /* fall through to the direct kill: something is better than nothing */
+    }
+  }
+  try { child.kill() } catch { /* already gone */ }
+}
+
+export function runCmd(file, args, timeoutMs = 180000, cwd = undefined) {
   return new Promise((resolve) => {
     const isWin = process.platform === 'win32'
     // On Windows the package managers are .cmd shims, and spawn does not resolve
@@ -1121,7 +1262,7 @@ function runCmd(file, args, timeoutMs = 180000, cwd = undefined) {
     let err = ''
     child.stdout?.on('data', (b) => { out += b.toString('utf8') })
     child.stderr?.on('data', (b) => { err += b.toString('utf8') })
-    const timer = setTimeout(() => { try { child.kill() } catch { /* gone */ } }, timeoutMs)
+    const timer = setTimeout(() => { killTree(child) }, timeoutMs)
     child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out, err: String(e) }) })
     child.on('close', (code) => { clearTimeout(timer); resolve({ code, out, err }) })
   })
@@ -1372,7 +1513,9 @@ function runStepSync(step) {
     let err = ''
     child.stdout?.on('data', (b) => { out += b.toString('utf8') })
     child.stderr?.on('data', (b) => { err += b.toString('utf8') })
-    const timer = setTimeout(() => { try { child.kill() } catch { /* gone */ } }, 180000)
+    // A scan step forks python-shaped work of its own; killing only this
+    // process would leave the step's children walking the disk unsupervised.
+    const timer = setTimeout(() => { killTree(child) }, 180000)
     child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out, err: String(e) }) })
     child.on('close', (code) => { clearTimeout(timer); resolve({ code, out, err }) })
   })
@@ -1409,21 +1552,87 @@ async function doRestart() {
   }
 }
 
-/** Read a JSON request body, tolerating an empty or malformed one. */
+/**
+ * Read a JSON request body.
+ *
+ * Resolves `{ value }` on success and `{ tooLarge }` / `{ badJson }` on the two
+ * failures the caller has to name out loud. It never rejects: every caller turns
+ * a refusal into a status code, and an exception here would surface as a 500 that
+ * blames the server for a client's mistake.
+ *
+ * The previous version called `req.destroy()` once the body passed 1e6 characters.
+ * Destroying the socket mid-request leaves the client with a connection reset and
+ * no status, and the promise never settled because only `end` and `error` resolve
+ * it — so the handler hung until the socket died under it. A 413 is the whole
+ * point: the client has to learn the request was too big, not that the server
+ * stopped talking.
+ */
+const MAX_BODY_BYTES = 1 << 20
+
 function readJsonBody(req) {
   return new Promise((resolve) => {
     let raw = ''
+    let tooLarge = false
+    let done = false
+
+    const finish = (out) => {
+      if (done) return
+      done = true
+      resolve(out)
+    }
+
     req.on('data', (b) => {
+      if (tooLarge) return
       raw += b.toString('utf8')
-      if (raw.length > 1e6) { try { req.destroy() } catch { /* gone */ } }
+      if (raw.length > MAX_BODY_BYTES) {
+        tooLarge = true
+        raw = ''
+        // Keep draining rather than destroying: the response still has to reach
+        // the client, and closing the read side early is what broke this before.
+        finish({ tooLarge: true })
+      }
     })
     req.on('end', () => {
-      if (!raw.trim()) return resolve({})
-      try { resolve(JSON.parse(raw)) } catch { resolve({}) }
+      if (tooLarge) return
+      if (!raw.trim()) return finish({ value: {} })
+      try {
+        finish({ value: JSON.parse(raw) })
+      } catch (err) {
+        finish({ badJson: String(err?.message ?? err) })
+      }
     })
-    req.on('error', () => resolve({}))
+    req.on('error', () => finish({ value: {} }))
+    req.on('aborted', () => finish({ value: {} }))
   })
 }
+
+/** The refusal for a body that cleared MAX_BODY_BYTES, or null. */
+function bodyRefusal(got) {
+  if (got.tooLarge) {
+    return {
+      code: 413,
+      body: {
+        ok: false,
+        code: 'error.proto.bodyTooLarge',
+        error: `请求体超过 ${MAX_BODY_BYTES} 字节`,
+      },
+    }
+  }
+  if (got.badJson !== undefined) {
+    return {
+      code: 400,
+      body: {
+        ok: false,
+        code: 'error.proto.invalidJson',
+        error: '请求体不是合法 JSON：' + got.badJson,
+      },
+    }
+  }
+  return null
+}
+
+export { readJsonBody, MAX_BODY_BYTES, bodyRefusal }
+export { SIZE_MAX_ENTRIES, SIZE_MAX_MS, SIZE_WORKERS }
 
 /**
  * Mute or unmute one project.
@@ -1647,10 +1856,10 @@ async function snapshot() {
   }))
 
   // `discovered` is the safety net: a project the scan found on disk that no
-  // curated row and no session reported. It exists because the skill-based
-  // reporting depends on another window's model choosing to follow the rule —
-  // if it does not, the page would otherwise show nothing and the operator could
-  // not tell "nothing was downloaded" from "something was downloaded and missed".
+  // curated row reported. It exists because the reporting step depends on another
+  // window's model choosing to follow the rule — if it does not, the page would
+  // otherwise show nothing and the operator could not tell "nothing was
+  // downloaded" from "something was downloaded and missed".
   const discovered = (inventory.discovered || []).map((d) => ({
     name: d.name || '',
     slug: d.slug || '',
@@ -1661,6 +1870,7 @@ async function snapshot() {
   }))
 
   const counts = report.counts || {}
+
   return {
     ok: Boolean(md),
     watchDir: WATCH_DIR,
@@ -1700,6 +1910,76 @@ async function snapshot() {
   }
 }
 
+/**
+ * Refuse a write that a plain web page could have caused.
+ *
+ * The host serves this Settings page from the same origin as its own API, so a
+ * page on any other site can still reach these routes: the browser sends the
+ * request, the cookie-less local server answers it, and the operator never sees
+ * a prompt. Three cheap checks close that door, and each one covers a case the
+ * others miss:
+ *
+ *   1. a custom header. A cross-origin `fetch` cannot set one without a
+ *      preflight, and a form post or an `<img src>` cannot set one at all.
+ *   2. Origin vs Host. Catches anything that replays a request from another
+ *      origin with the header already attached (curl is not the threat; a
+ *      malicious page holding a proxy is).
+ *   3. a JSON content-type. `text/plain` and form encodings are the two types a
+ *      browser will send cross-origin without a preflight, which is exactly the
+ *      hole check 1 exists to block — so refusing them keeps the story one
+ *      sentence long instead of two.
+ *
+ * Returns null when the request may proceed, or {code, body} when it may not.
+ */
+function guardWrite(req) {
+  const head = (req && req.headers) || {}
+  const marker = head[WRITE_MARKER]
+  if (marker !== WRITE_MARKER_VALUE) {
+    return {
+      code: 403,
+      body: {
+        ok: false,
+        code: 'error.proto.forbidden',
+        error: '写操作缺少请求头 ' + WRITE_MARKER + ': ' + WRITE_MARKER_VALUE
+          + '（跨站页面无法为简单请求加上它）',
+      },
+    }
+  }
+  const origin = head.origin
+  if (origin) {
+    let originHost = ''
+    try { originHost = new URL(String(origin)).host } catch { originHost = '' }
+    const host = String(head.host || '').trim()
+    if (!originHost || (host && originHost !== host)) {
+      return {
+        code: 403,
+        body: {
+          ok: false,
+          code: 'error.proto.crossOrigin',
+          error: '拒绝跨站写请求：Origin ' + String(origin)
+            + ' 与 Host ' + (host || '(缺失)') + ' 不一致',
+        },
+      }
+    }
+  }
+  const type = String(head['content-type'] || '').split(';', 1)[0].trim().toLowerCase()
+  if (type !== 'application/json') {
+    return {
+      code: 415,
+      body: {
+        ok: false,
+        code: 'error.proto.contentType',
+        error: '写请求的 content-type 必须是 application/json，收到 '
+          + (type ? '‘' + type + '’' : '(空)'),
+      },
+    }
+  }
+  return null
+}
+
+const WRITE_MARKER = 'x-dsh-github-watch'
+const WRITE_MARKER_VALUE = '1'
+
 export const route = {
   kind: 'prefix',
   path: '/github-watch',
@@ -1714,6 +1994,13 @@ export const route = {
       res.end(JSON.stringify(body))
     }
 
+    // One gate in front of the whole dispatch chain, not one call per endpoint:
+    // a write endpoint added later cannot forget to guard itself.
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const denied = guardWrite(req)
+      if (denied) return send(denied.code, denied.body)
+    }
+
     try {
       if (url.pathname === '/github-watch/api/projects' && req.method === 'GET') {
         return send(200, await snapshot())
@@ -1723,11 +2010,17 @@ export const route = {
       // rather than a bare 200: the page has to show what happened per item,
       // including the ones that were refused and why.
       if (url.pathname === '/github-watch/api/preview-delete' && req.method === 'POST') {
-        const body = await readJsonBody(req)
+        const got = await readJsonBody(req)
+        const bad = bodyRefusal(got)
+        if (bad) return send(bad.code, bad.body)
+        const body = got.value
         return send(200, await previewDelete(String(body.name || '')))
       }
       if (url.pathname === '/github-watch/api/delete' && req.method === 'POST') {
-        const body = await readJsonBody(req)
+        const got = await readJsonBody(req)
+        const bad = bodyRefusal(got)
+        if (bad) return send(bad.code, bad.body)
+        const body = got.value
         const names = Array.isArray(body.names) ? body.names : [body.name]
         const results = []
         for (const n of names.filter(Boolean)) {
@@ -1736,7 +2029,10 @@ export const route = {
         return send(200, { ok: results.every((r) => r.ok), results })
       }
       if (url.pathname === '/github-watch/api/mute' && req.method === 'POST') {
-        const body = await readJsonBody(req)
+        const got = await readJsonBody(req)
+        const bad = bodyRefusal(got)
+        if (bad) return send(bad.code, bad.body)
+        const body = got.value
         const names = Array.isArray(body.names) ? body.names : [body.name]
         const muted = body.muted !== false      // default: mute
         const results = []
@@ -1746,7 +2042,10 @@ export const route = {
         return send(200, { ok: results.every((r) => r.ok), results })
       }
       if (url.pathname === '/github-watch/api/update' && req.method === 'POST') {
-        const body = await readJsonBody(req)
+        const got = await readJsonBody(req)
+        const bad = bodyRefusal(got)
+        if (bad) return send(bad.code, bad.body)
+        const body = got.value
         const names = Array.isArray(body.names) ? body.names : [body.name]
         const results = []
         for (const n of names.filter(Boolean)) {

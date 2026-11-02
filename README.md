@@ -180,8 +180,9 @@ where the token is stored and its scopes; `gh api rate_limit` reports the quota.
 response buys nothing the page needs.
 
 - **Where `gh` comes from.** `DSH_GITHUB_WATCH_GH` → `gh` in `config.json` → PATH
-  → `%ProgramFiles%\GitHub CLI\gh.exe`. Missing is a normal state: the rest of the
-  page works, the account card just says so.
+  → `%ProgramFiles%\GitHub CLI\gh.exe`. Missing is a normal state, not a broken
+  install: checking for updates works either way (see **About `gh`**), the card
+  just cannot name an account.
 - **Logging in** spawns `gh auth login --web` and reads the one-time code off its
   output, so the code and `https://github.com/login/device` appear in the page.
   Authorize in the browser and the card flips within a poll or two; **取消** kills
@@ -203,16 +204,61 @@ response buys nothing the page needs.
   not masked by a stale "logged out". `POST /api/github/refresh` forces a re-read
   for the case where the user ran `gh auth login` in their own terminal.
 
-Rate limit matters here specifically: anonymous GitHub API is 60 requests/hour,
-while the badge shows the authenticated 5000. Without a login the checks work but
-run out fast.
+Rate limits are the reason all of the above is worth having: see **About `gh`**
+below for what each token source buys you.
 
 ## Requirements
 
-- DSH `>=0.2.1-rc.2 <0.3.0`
-- Node 18+ (uses `fetch`, `node:test`-free but modern stdlib)
-- `git` on PATH — for `ls-remote` and `pull`
-- `gh` on PATH — optional, only for the account card and the quota badge
+| | Needed? | Without it |
+|---|---|---|
+| DSH `>=0.2.1-rc.2 <0.3.0` | required | the plugin does not load |
+| Node 18+ | required | ships with DSH, do not install separately |
+| `git` on PATH | required | every `git` project says `检查失败`; the rest is unaffected |
+| **`gh` (GitHub CLI)** | **recommended, install it yourself** | the account card cannot read a login; **checking for updates is unaffected** |
+
+## About `gh`
+
+`gh` is a separate program, not something bundled here. It is a ~15 MB binary and
+it has to follow GitHub's own security releases — vendoring it would only freeze
+it at whatever version shipped.
+
+```powershell
+winget install --id GitHub.cli     # Windows
+```
+```bash
+brew install gh                    # macOS
+```
+
+Then log in once (this needs a browser):
+
+```bash
+gh auth login
+```
+
+**None of that is needed to check for updates.** The token is looked up in three
+places, in order of preference:
+
+1. `GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_PAT` in the environment
+2. `gh auth token`
+3. `~/.git-credentials` — the file `git` writes itself when you clone over HTTPS
+
+A machine that has ever cloned from GitHub over HTTPS usually already has (3), and
+that is a full 5000 requests/hour. What the card cannot tell you in that case is
+*who* is logged in — which is the only thing `gh` adds.
+
+The anonymous fallback (nothing found at all) is 60 requests/hour. That is enough
+for a handful of projects and not much more, which is why the badge shows the
+authenticated number when there is one.
+
+One thing that catches people out: a `gho_` token copied out of `.git-credentials`
+cannot be fed to `gh auth login --with-token`. `gh` requires the `read:org` scope,
+which those tokens usually lack:
+
+```
+error validating token: missing required scope 'read:org'
+```
+
+So if you want the card populated, the only route is the browser login above.
 
 Python is **not** required. It is mentioned only where it is relevant: `uv tool`
 and `pipx` installs are inspected by reading their metadata off disk, and a
@@ -228,14 +274,23 @@ everything else still resolves through the HTTP APIs.
 npm test
 ```
 
-24 tests, no dependencies, no network:
+101 tests, no dependencies, no network:
 
 | File | Covers |
 |---|---|
 | `test/parse.test.mjs` | `parseReport` (every kind, not just the enumerated ones) and `splitBlurb` |
 | `test/pipeline.test.mjs` | the inventory and build steps end to end against a fake disk in a temp directory |
 | `test/routes.test.mjs` | the HTTP endpoints, including that the page paints before the GitHub account has been read |
-| `test/render.test.mjs` | six headless renders of `client.js`, so a broken hook order fails here instead of showing a blank page |
+| `test/render.test.mjs` | headless renders of `client.js`, so a broken hook order fails here instead of showing a blank page |
+| `test/check.test.mjs` | `probeGit` resolves the default branch instead of assuming `main`, recovers from a stale remembered branch, and never reports a failure with nothing after the colon |
+| `test/guard.test.mjs` | every write endpoint refuses a request without the marker header, from a foreign origin, or with a non-JSON body |
+| `test/safety.test.mjs` | `isSafePath`: `..` never escapes, a scan root itself is never deletable, and every root the scanner walks is reachable by the delete guard |
+| `test/body.test.mjs` | `readJsonBody`: an oversized body is refused instead of hanging the request |
+| `test/util.test.mjs` | `writeJson` is atomic — a reader never sees half a file |
+| `test/size.test.mjs` | `dirSize` is bounded and says when it truncated |
+| `test/fetch.test.mjs` | upstream responses are capped in bytes, including when the server lies about the length |
+| `test/kill.test.mjs` | a timed-out command takes its whole process tree down, detached grandchildren included |
+| `test/npm.test.mjs` | `slugFromRepository` across the shapes npm allows, and that the npm probe asks for one version instead of the full packument |
 
 They never touch `~/.dsh-github-watch`: helper `isolate()` points
 `DSH_GITHUB_WATCH_DIR` at a fresh temp directory before the step modules are
