@@ -274,7 +274,7 @@ everything else still resolves through the HTTP APIs.
 npm test
 ```
 
-101 tests, no dependencies, no network:
+112 tests, no dependencies, no network:
 
 | File | Covers |
 |---|---|
@@ -283,6 +283,7 @@ npm test
 | `test/routes.test.mjs` | the HTTP endpoints, including that the page paints before the GitHub account has been read |
 | `test/render.test.mjs` | headless renders of `client.js`, so a broken hook order fails here instead of showing a blank page |
 | `test/check.test.mjs` | `probeGit` resolves the default branch instead of assuming `main`, recovers from a stale remembered branch, and never reports a failure with nothing after the colon |
+| `test/summary.test.mjs` | `summarizeRelease`: a hard-wrapped English note is joined into paragraphs before it is summarised, sections that are not changes are dropped, a period inside `v0.2.2` or `check.mjs` is not read as a sentence end, and nothing is truncated by length |
 | `test/guard.test.mjs` | every write endpoint refuses a request without the marker header, from a foreign origin, or with a non-JSON body |
 | `test/safety.test.mjs` | `isSafePath`: `..` never escapes, a scan root itself is never deletable, and every root the scanner walks is reachable by the delete guard |
 | `test/body.test.mjs` | `readJsonBody`: an oversized body is refused instead of hanging the request |
