@@ -15,6 +15,7 @@
 // parameter precisely so a fake remote can answer like the real one did.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import { probeGit } from '../lib/check.mjs'
 
@@ -141,4 +142,46 @@ test('a token in git stderr is masked', () => {
   const got = probeGit(SLUG, null, [], leaky)
   assert.equal(got.ok, false)
   assert.ok(!got.error.includes('ghp_SECRET123'), 'token survived into the message: ' + got.error)
+})
+
+/**
+ * Every probe lane that can say 有更新 has to publish its notes.
+ *
+ * This is a source check, not a behavioural one, and deliberately so: reaching the
+ * release branch needs a GitHub API response, and the bug being guarded against is
+ * a missing line, not wrong arithmetic. `github-mcp-server` showed 有更新 with an
+ * empty notes column for two releases because the release lane computed
+ * `got.summary` inside probeRelease and never copied it onto the row — while the
+ * tags and npm lanes both did.
+ *
+ * The git lane is excluded on purpose: it compares commits, not releases, so it has
+ * no notes to publish. Requiring one there would force a fabricated summary.
+ */
+test('every release-notes lane that reports an update also publishes its summary', () => {
+  const src = readFileSync(new URL('../lib/check.mjs', import.meta.url), 'utf8')
+  const lines = src.split('\n')
+
+  // A lane starts at `} else if (how === 'x') {` and ends at the next one, or at the
+  // end of the loop body. Everything inside is that lane's own code.
+  const LANES = [
+    { name: 'tags', re: /how === 'tags'/ },
+    { name: 'release', re: /how === 'release'/ },
+    { name: 'npm/pypi', re: /how === 'npm' \|\| how === 'pypi'/ },
+  ]
+  const starts = []
+  lines.forEach((line, i) => {
+    if (/^\s*\} else if \(how === /.test(line)) starts.push(i)
+  })
+  assert.ok(starts.length >= LANES.length, 'could not locate the probe lanes: ' + starts.length)
+
+  for (const lane of LANES) {
+    const head = starts.find((i) => lane.re.test(lines[i]))
+    assert.ok(head !== undefined, `lane ${lane.name} not found`)
+    const next = starts.filter((i) => i > head).sort((a, b) => a - b)[0] ?? lines.length
+    const body = lines.slice(head, next)
+    assert.ok(
+      body.some((l) => /^\s*r\.summary = /.test(l)),
+      `lane ${lane.name} can report 有更新 but never sets r.summary — the row will show an empty notes column`,
+    )
+  }
 })
