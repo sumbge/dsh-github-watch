@@ -26,7 +26,7 @@ import { isolate } from './helpers.mjs'
 
 const box = isolate('gw-safety-')
 
-const { isSafePath } = await import('../index.js')
+const { isSafePath, uninstalledBySlug } = await import('../index.js')
 const { roots: scannerRoots } = await import('../lib/config.mjs')
 
 const DESKTOP = join(homedir(), 'Desktop')
@@ -135,4 +135,29 @@ test('the configured watch roots are honoured', () => {
     if (old === undefined) delete process.env.DSH_GITHUB_WATCH_ROOTS
     else process.env.DSH_GITHUB_WATCH_ROOTS = old
   }
+})
+
+test('a failed delete is not read back as a completed one', () => {
+  // The record is written before the bytes are removed, so a delete that throws
+  // leaves an entry behind. github-mcp-server is the case: the .exe was locked
+  // by a running MCP child, `rm` failed, and the page went on showing a crossed
+  // out "已卸载 · 释放 25 MB" over a directory that was still on disk. The
+  // attempt is worth keeping; calling it a deletion is the page lying about the
+  // machine, which is the one thing a list of what you have must never do.
+  const watched = [
+    { slug: 'github/github-mcp-server', name: 'github-mcp-server', status: 'removed', size_freed_mb: 25 },
+    { slug: 'owner/locked', name: 'locked', status: 'remove-failed', remove_error: 'EBUSY', size_freed_mb: 0 },
+    { slug: 'owner/asked', name: 'asked', status: 'asked' },
+    { name: 'NoSlug', status: 'removed' },
+    { status: 'removed' },
+    null,
+  ]
+  const map = uninstalledBySlug(watched)
+  assert.equal(map.has('github/github-mcp-server'), true, 'a real deletion was forgotten')
+  assert.equal(map.has('owner/locked'), false, 'a failed delete is being reported as an uninstall')
+  assert.equal(map.has('owner/asked'), false, 'merely asking about a repo is not a delete')
+  // Keyed by slug when there is one, by name otherwise — the join in snapshot()
+  // looks rows up by `p.slug || p.name`, so both spellings have to land.
+  assert.equal(map.get('noslug').name, 'NoSlug')
+  assert.equal(map.size, 2, 'an entry with neither slug nor name became a row')
 })

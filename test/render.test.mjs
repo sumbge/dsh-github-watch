@@ -48,6 +48,12 @@ function makeReact(presets) {
       const i = n++
       const base = typeof init === 'function' ? init() : init
       if (i === 0 && presets.firstLoad !== undefined) return [presets.firstLoad, () => {}]
+      // `justRemoved` is the sixth useState in Watch() and the only one that
+      // starts as an empty object, so it is keyed on its slot with that order
+      // spelled out here: data, error, busy, filter, expanded, justRemoved.
+      // A state added above it would silently shift this, which is why the
+      // comment names the neighbours instead of just the index.
+      if (i === 5 && presets.justRemoved !== undefined) return [presets.justRemoved, () => {}]
       if (!viewSeen && base === 'projects' && presets.view !== undefined) {
         viewSeen = true
         return [presets.view, () => {}]
@@ -198,6 +204,74 @@ for (const [label, presets, want] of scenarios) {
 
 // What is left of the old second view is the page it lived on: one list, one bar,
 // and the button that says what it does.
+
+test('renders: a patched install is drawn as its own state, not as plain current', async () => {
+  // Real case behind this: dsh-xdpool reports version 2.6.4, the registry
+  // publishes 2.6.4, and the files on disk carry two hand edits. Both "up to
+  // date" and "different code" are true, and the colour has to say so — green
+  // would hide the edits, red would claim a problem that does not exist.
+  const tree = await render({
+    firstLoad: loaded({
+      projects: [
+        { name: 'dsh-xdpool', kind: 'tags', version: '2.6.4', latest: 'v2.6.4', status: '有本地补丁', state: 'live', path: 'C:/d', slug: 'XDTrees/dsh-xdpool' },
+        { name: 'plain', kind: 'npm', version: '1.0.0', latest: '1.0.0', status: '最新', state: 'live', path: 'C:/p' },
+      ],
+    }),
+  })
+  const cls = classes(tree).join(' ')
+  assert.ok(/gw_status patched\b/.test(cls), 'the patched row kept the plain status class: ' + cls.slice(0, 300))
+  assert.ok(/gw_status current\b/.test(cls), 'an ordinary up-to-date row lost its own class')
+})
+
+test('renders: an uninstalled row is not on the page after it is reopened', async () => {
+  // Real case behind this: github-mcp-server was deleted from the settings page
+  // on 2026-11-11 and its crossed-out row was still sitting at the bottom of the
+  // list days later. An uninstall is a decision about the disk, and the list
+  // describes the disk — once the page is closed, a row that says "已卸载" is
+  // answering a question nobody asked, about something that is no longer there.
+  //
+  // The row stays visible only while `justRemoved` holds its name, which is
+  // session state set by a delete in this same page. A fresh page starts with
+  // that map empty, and that is the state this test renders.
+  const tree = await render({
+    firstLoad: loaded({
+      projects: [
+        { name: 'still-here', kind: 'npm', version: '1.0.0', latest: '1.0.0', status: '最新', state: 'live', path: 'C:/a' },
+        { name: 'gone-forever', kind: 'release', version: '2.0.3', status: '已卸载', state: 'removed', path: 'C:/b', slug: 'github/github-mcp-server' },
+      ],
+    }),
+  })
+  const t = text(tree)
+  assert.ok(t.includes('still-here'), 'a live row disappeared: ' + t.slice(0, 200))
+  assert.ok(!t.includes('gone-forever'), 'the uninstalled row is still on the page')
+  // And not merely hidden by CSS: the row element itself must be gone, or the
+  // tab counts and the list length would still include it.
+  const cls = classes(tree).join(' ')
+  assert.ok(!/isremoved/.test(cls), 'the uninstalled row is still rendered, only faded')
+})
+
+test('renders: a row deleted in this session stays on screen until the page closes', async () => {
+  // The other half of the rule above. Dropping the row the instant the delete
+  // returns would make a successful delete and a dead button look identical —
+  // the operator clicks, the row disappears, and nothing says whether 25 MB
+  // were actually released. So the name goes into `justRemoved`, and the row
+  // survives with its crossed-out "已卸载" line and the freed size until the
+  // page is closed, at which point the map is gone and the row with it.
+  const tree = await render({
+    firstLoad: loaded({
+      projects: [
+        { name: 'just-deleted', kind: 'release', version: '1.12.0', status: '已卸载', state: 'removed', path: 'C:/d', slug: 'github/github-mcp-server', sizeMb: 24.9 },
+        { name: 'unrelated-old-delete', kind: 'npm', version: '1.0.0', status: '已卸载', state: 'removed', path: 'C:/e' },
+      ],
+    }),
+    justRemoved: { 'just-deleted': true },
+  })
+  const t = text(tree)
+  assert.ok(t.includes('just-deleted'), 'the row just deleted is not shown, so nothing confirms the delete')
+  assert.ok(!t.includes('unrelated-old-delete'), 'a delete from an earlier session is still on the page')
+  const cls = classes(tree).join(' ')
+  assert.ok(/gw_row.*isremoved|isremoved/.test(cls), 'the row lost its crossed-out styling')
+})
 
 test('renders: the page carries one list, its bar, and the check-update button', async () => {
   const tree = await render({ firstLoad: loaded({ github: GH_OK }) })

@@ -28,7 +28,6 @@ const INVENTORY = {
     { name: 'dsh-github-watch', profile: 'desktop', version: '0.2.0', install_path: 'C:/fake/gw', installed: true },
   ],
   tools: [],
-  discovered: [],
   scanned_at: '2026-10-31T18:00:00+08:00',
 }
 

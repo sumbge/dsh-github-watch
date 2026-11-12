@@ -18,7 +18,7 @@ window.__ModuleLoader__.load({
      */
     const WRITE_HEADERS = { 'content-type': 'application/json', 'x-dsh-github-watch': '1' };
 
-    const CSS = `.gw,.gw *,.gw *::before,.gw *::after{box-sizing:border-box}.gw{width:100%;max-width:880px;display:flex;flex-direction:column;gap:14px;color:var(--dsw-alias-label-primary)}.gw_head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.gw_title{font-size:15px;font-weight:600;line-height:22px}.gw_when{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}.gw_bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:8px}.gw_search{flex:0 1 220px;min-width:0;max-width:220px}.gw_bar>.gw_btn{flex:none;white-space:nowrap}.gw_bar>.gw_when{flex:none;margin-left:auto}.gw_search input{width:100%;height:32px;font:inherit;font-size:13px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none}.gw_search input::placeholder{color:var(--dsw-alias-label-tertiary)}.gw_search input:focus-visible{border-color:var(--dsw-alias-state-business-primary)}.gw_btn{cursor:pointer;font-size:12px;line-height:18px;padding:4px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary)}.gw_btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.gw_btn:disabled{opacity:.5;cursor:default}.gw_list{display:flex;flex-direction:column;gap:6px}.gw_row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:9px;padding:9px 12px}.gw_dot{width:7px;height:7px;border-radius:999px;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.updated{background:var(--dsw-alias-state-error-primary)}.gw_dot.current{background:var(--dsw-alias-state-success-primary)}.gw_dot.upstream{background:var(--dsw-alias-state-business-primary)}.gw_dot.removed{background:var(--dsw-alias-label-tertiary)}.gw_dot.vanished{background:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-error-primary))}.gw_status.removed{color:var(--dsw-alias-label-tertiary);text-decoration:line-through}.gw_status.vanished{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.isremoved{opacity:.6}.gw_name{font-size:13px;line-height:20px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gw_kind{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px;flex:none}.gw_status{font-size:12px;line-height:18px;flex:none;white-space:nowrap}.gw_status.updated{color:var(--dsw-alias-state-error-primary)}.gw_status.current{color:var(--dsw-alias-state-success-primary)}.gw_status.upstream{color:var(--dsw-alias-state-business-primary)}.gw_status.gone{color:var(--dsw-alias-label-tertiary)}.gw_detailLine{display:flex;flex-direction:column;align-items:stretch;gap:1px;width:100%;min-width:0}.gw_detailPath{width:100%;font-size:11px;line-height:16px;text-align:left;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gw_detail{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all;width:100%}.gw_row.hasdesc{align-items:flex-start}.gw_desc{font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary);width:100%;padding-top:2px;border-top:1px solid var(--dsw-alias-border-l2);margin-top:2px;word-break:break-word}.gw_more{cursor:pointer;font:inherit;font-size:11px;line-height:16px;padding:0 6px;margin-left:6px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-state-business-primary);vertical-align:baseline}.gw_more:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_moreText{color:var(--dsw-alias-label-tertiary)}.gw_section{display:flex;flex-direction:column;gap:8px}.gw_sectHead{display:flex;align-items:baseline;gap:8px;padding:6px 2px 0}.gw_sectTitle{font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-secondary)}.gw_sectCount{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_slug{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);text-decoration:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.gw_emptySmall{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;padding:10px 4px}.gw_size{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;flex:none;background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px}.gw_sizeDeps{color:var(--dsw-alias-label-tertiary)}.gw_depBox{width:100%;margin-top:6px;padding:8px 10px;border-top:1px dashed var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:6px;background:var(--dsw-alias-bg-layer-1);border-radius:8px}.gw_depPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all}.gw_depList{display:flex;flex-direction:column;gap:4px}.gw_dep{display:flex;align-items:baseline;gap:8px;font-size:12px;line-height:18px}.gw_dep.miss{opacity:.5}.gw_depName{color:var(--dsw-alias-label-primary);flex:none;min-width:150px}.gw_depWhy{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px;flex:1;min-width:0}.gw_depTag{flex:none;font-size:10px;line-height:14px;color:var(--dsw-alias-state-business-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.gw_depSize{flex:none;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);font-size:11px}.gw_work{border-top:1px solid var(--dsw-alias-border-l2);padding-top:6px;display:flex;flex-direction:column;gap:4px}.gw_workHead{display:flex;align-items:baseline;gap:8px}.gw_workTitle{font-size:11px;line-height:16px;font-weight:600;color:var(--dsw-alias-state-error-primary)}.gw_workSize{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);margin-left:auto}.gw_depMini{padding-left:14px}.gw_dot.muted{background:var(--dsw-alias-label-tertiary);opacity:.7}.gw_status.muted{color:var(--dsw-alias-label-tertiary)}.gw_row.ismuted{opacity:.75}.gw_tab.active .gw_tabCount{color:var(--dsw-alias-label-secondary)}.gw_tabs{display:flex;gap:4px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}.gw_tab{cursor:pointer;font:inherit;font-size:13px;line-height:20px;padding:5px 12px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;gap:6px}.gw_tab:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_tab.active{color:var(--dsw-alias-label-primary);font-weight:600;background:var(--dsw-alias-bg-layer-3);box-shadow:inset 0 -2px 0 var(--dsw-alias-state-business-primary)}.gw_tabCount{font-size:11px;line-height:16px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_check{flex:none;width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--dsw-alias-state-business-primary)}.gw_check.gap{visibility:hidden}.gw_row.picked{border-color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 6%,transparent)}.gw_selectBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}.gw_selectAll{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--dsw-alias-label-secondary)}.gw_selectAll input{accent-color:var(--dsw-alias-state-business-primary)}.gw_selCount{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-left:auto;font-variant-numeric:tabular-nums}.gw_btnDanger{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.gw_btnDanger:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}.gw_btnDangerSolid{border-color:transparent;background:var(--dsw-alias-state-error-primary);color:#fff}.gw_notice{font-size:12px;line-height:18px;padding:8px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);cursor:pointer;word-break:break-word}.gw_overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000}.gw_dialog{background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;box-shadow:var(--dsw-shadow-lv1);padding:18px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}.gw_dialogTitle{font-size:15px;font-weight:600;line-height:22px}.gw_dialogBody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_dialogList{display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto}.gw_dialogItem{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.gw_dialogName{font-size:13px;font-weight:600}.gw_dialogBreak{font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_dialogWarn{font-size:11px;color:var(--dsw-alias-state-error-primary);font-weight:600}.gw_dialogOk{font-size:11px;color:var(--dsw-alias-state-success-primary)}.gw_dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}.gw_sectTitle.gw_newTitle{color:var(--dsw-alias-state-error-primary)}.gw_queueHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);padding:0 2px 2px}.gw_row.gw_new{border-color:var(--dsw-alias-state-error-primary);border-style:dashed}.gw_sectTitle.gw_discTitle{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.gw_disc{border-color:var(--dsw-alias-state-business-primary);border-style:dotted}.gw_want{width:100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent);border-left:2px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:3px 8px;word-break:break-word}.gw_btnScan{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}.gw_btnScan:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 12%,transparent)}.gw_scanBar{position:relative;height:26px;border-radius:6px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);overflow:hidden;display:flex;align-items:center}.gw_scanFill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 22%,transparent);transition:width .4s ease}.gw_scanText{position:relative;font-size:11px;line-height:16px;padding:0 10px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}.gw_empty{color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:20px;padding:22px 4px;text-align:center}.gw_err{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.gw_fold{flex:none;cursor:pointer;font:inherit;font-size:12px;line-height:18px;width:22px;height:22px;padding:0;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dsw-alias-label-tertiary);transition:background .12s,color .12s}.gw_fold:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.gw_fold.open{color:var(--dsw-alias-label-primary)}.gw_hintBox{display:block;padding:0;margin:2px 0 6px;text-align:left}.gw_hintText{display:block;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);text-align:left}.gw_hintLine{display:block;padding-left:11px;position:relative;word-break:break-word}.gw_hintLine+.gw_hintLine{margin-top:5px}.gw_hintLine::before{content:'';position:absolute;left:2px;top:9px;width:4px;height:4px;border-radius:50%;background:var(--dsw-alias-label-tertiary)}.gw_summary{flex:1 1 100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3);border-radius:6px;padding:2px 8px;margin-top:2px}.gw_restart{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-3);border-radius:10px;padding:10px 14px}.gw_restartText{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}.gw_restartTitle{font-size:13px;font-weight:600;line-height:20px}.gw_restartWhy{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_btnPrimary{background:var(--dsw-alias-state-business-primary);border-color:var(--dsw-alias-state-business-primary);color:#fff;font-weight:600}.gw_btnPrimary:hover:not(:disabled){opacity:.9}.gw_copyTag{flex:none;font-size:10px;line-height:16px;padding:0 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_copies{margin-bottom:6px}.gw_copiesHead{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}.gw_gh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:8px 12px}.gw_ghMain{display:flex;flex-direction:column;gap:1px;min-width:0}.gw_ghLogin{font-size:13px;line-height:18px;font-weight:600;display:flex;align-items:center;gap:6px}.gw_ghMeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_ghRight{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.gw_ghQ{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_ghQ.low{color:var(--dsw-alias-state-error-primary)}.gw_dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.on{background:var(--dsw-alias-state-success-primary)}.gw_dot.off{background:var(--dsw-alias-label-tertiary)}.gw_dev{margin-top:6px;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.gw_devHead{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_devCode{font-size:22px;line-height:30px;font-weight:700;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;user-select:all;cursor:pointer}.gw_devRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.gw_devHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}
+    const CSS = `.gw,.gw *,.gw *::before,.gw *::after{box-sizing:border-box}.gw{width:100%;max-width:880px;display:flex;flex-direction:column;gap:14px;color:var(--dsw-alias-label-primary)}.gw_head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.gw_title{font-size:15px;font-weight:600;line-height:22px}.gw_when{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}.gw_bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:8px}.gw_search{flex:0 1 220px;min-width:0;max-width:220px}.gw_bar>.gw_btn{flex:none;white-space:nowrap}.gw_bar>.gw_when{flex:none;margin-left:auto}.gw_search input{width:100%;height:32px;font:inherit;font-size:13px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none}.gw_search input::placeholder{color:var(--dsw-alias-label-tertiary)}.gw_search input:focus-visible{border-color:var(--dsw-alias-state-business-primary)}.gw_btn{cursor:pointer;font-size:12px;line-height:18px;padding:4px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary)}.gw_btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.gw_btn:disabled{opacity:.5;cursor:default}.gw_list{display:flex;flex-direction:column;gap:6px}.gw_row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:9px;padding:9px 12px}.gw_dot{width:7px;height:7px;border-radius:999px;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.updated{background:var(--dsw-alias-state-error-primary)}.gw_dot.current{background:var(--dsw-alias-state-success-primary)}.gw_dot.patched{background:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_dot.upstream{background:var(--dsw-alias-state-business-primary)}.gw_dot.removed{background:var(--dsw-alias-label-tertiary)}.gw_dot.vanished{background:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-error-primary))}.gw_status.removed{color:var(--dsw-alias-label-tertiary);text-decoration:line-through}.gw_status.vanished{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.isremoved{opacity:.6}.gw_name{font-size:13px;line-height:20px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gw_kind{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px;flex:none}.gw_status{font-size:12px;line-height:18px;flex:none;white-space:nowrap}.gw_status.updated{color:var(--dsw-alias-state-error-primary)}.gw_status.current{color:var(--dsw-alias-state-success-primary)}.gw_status.patched{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_status.upstream{color:var(--dsw-alias-state-business-primary)}.gw_status.gone{color:var(--dsw-alias-label-tertiary)}.gw_detailLine{display:flex;flex-direction:column;align-items:stretch;gap:1px;width:100%;min-width:0}.gw_detailPath{width:100%;font-size:11px;line-height:16px;text-align:left;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gw_detail{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all;width:100%}.gw_row.hasdesc{align-items:flex-start}.gw_desc{font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary);width:100%;padding-top:2px;border-top:1px solid var(--dsw-alias-border-l2);margin-top:2px;word-break:break-word}.gw_more{cursor:pointer;font:inherit;font-size:11px;line-height:16px;padding:0 6px;margin-left:6px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-state-business-primary);vertical-align:baseline}.gw_more:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_moreText{color:var(--dsw-alias-label-tertiary)}.gw_section{display:flex;flex-direction:column;gap:8px}.gw_sectHead{display:flex;align-items:baseline;gap:8px;padding:6px 2px 0}.gw_sectTitle{font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-secondary)}.gw_sectCount{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_slug{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);text-decoration:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.gw_emptySmall{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;padding:10px 4px}.gw_size{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;flex:none;background:var(--dsw-alias-bg-layer-1);border-radius:5px;padding:1px 7px}.gw_sizeDeps{color:var(--dsw-alias-label-tertiary)}.gw_depBox{width:100%;margin-top:6px;padding:8px 10px;border-top:1px dashed var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:6px;background:var(--dsw-alias-bg-layer-1);border-radius:8px}.gw_aliasBox{display:flex;flex-direction:column;gap:3px;padding-top:6px;border-top:1px dashed var(--dsw-alias-border-l2)}.gw_aliasTitle{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_aliasPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);word-break:break-all}.gw_depPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);word-break:break-all}.gw_depList{display:flex;flex-direction:column;gap:4px}.gw_dep{display:flex;align-items:baseline;gap:8px;font-size:12px;line-height:18px}.gw_dep.miss{opacity:.5}.gw_depName{color:var(--dsw-alias-label-primary);flex:none;min-width:150px}.gw_depWhy{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px;flex:1;min-width:0}.gw_depTag{flex:none;font-size:10px;line-height:14px;color:var(--dsw-alias-state-business-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.gw_depSize{flex:none;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);font-size:11px}.gw_work{border-top:1px solid var(--dsw-alias-border-l2);padding-top:6px;display:flex;flex-direction:column;gap:4px}.gw_workHead{display:flex;align-items:baseline;gap:8px}.gw_workTitle{font-size:11px;line-height:16px;font-weight:600;color:var(--dsw-alias-state-error-primary)}.gw_workSize{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);margin-left:auto}.gw_depMini{padding-left:14px}.gw_dot.muted{background:var(--dsw-alias-label-tertiary);opacity:.7}.gw_status.muted{color:var(--dsw-alias-label-tertiary)}.gw_row.ismuted{opacity:.75}.gw_tab.active .gw_tabCount{color:var(--dsw-alias-label-secondary)}.gw_tabs{display:flex;gap:4px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}.gw_tab{cursor:pointer;font:inherit;font-size:13px;line-height:20px;padding:5px 12px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;gap:6px}.gw_tab:hover{background:var(--dsw-alias-interactive-bg-hover)}.gw_tab.active{color:var(--dsw-alias-label-primary);font-weight:600;background:var(--dsw-alias-bg-layer-3);box-shadow:inset 0 -2px 0 var(--dsw-alias-state-business-primary)}.gw_tabCount{font-size:11px;line-height:16px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_check{flex:none;width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--dsw-alias-state-business-primary)}.gw_check.gap{visibility:hidden}.gw_row.picked{border-color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 6%,transparent)}.gw_selectBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}.gw_selectAll{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--dsw-alias-label-secondary)}.gw_selectAll input{accent-color:var(--dsw-alias-state-business-primary)}.gw_selCount{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-left:auto;font-variant-numeric:tabular-nums}.gw_btnDanger{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.gw_btnDanger:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}.gw_btnDangerSolid{border-color:transparent;background:var(--dsw-alias-state-error-primary);color:#fff}.gw_notice{font-size:12px;line-height:18px;padding:8px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);cursor:pointer;word-break:break-word}.gw_overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000}.gw_dialog{background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;box-shadow:var(--dsw-shadow-lv1);padding:18px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}.gw_dialogTitle{font-size:15px;font-weight:600;line-height:22px}.gw_dialogBody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_dialogList{display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto}.gw_dialogItem{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.gw_dialogName{font-size:13px;font-weight:600}.gw_dialogBreak{font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_dialogWarn{font-size:11px;color:var(--dsw-alias-state-error-primary);font-weight:600}.gw_dialogOk{font-size:11px;color:var(--dsw-alias-state-success-primary)}.gw_dialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}.gw_sectTitle.gw_newTitle{color:var(--dsw-alias-state-error-primary)}.gw_queueHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);padding:0 2px 2px}.gw_row.gw_new{border-color:var(--dsw-alias-state-error-primary);border-style:dashed}.gw_sectTitle.gw_discTitle{color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-state-business-primary))}.gw_row.gw_disc{border-color:var(--dsw-alias-state-business-primary);border-style:dotted}.gw_want{width:100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent);border-left:2px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:3px 8px;word-break:break-word}.gw_btnScan{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}.gw_btnScan:hover:not(:disabled){background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 12%,transparent)}.gw_scanBar{position:relative;height:26px;border-radius:6px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);overflow:hidden;display:flex;align-items:center}.gw_scanFill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 22%,transparent);transition:width .4s ease}.gw_scanText{position:relative;font-size:11px;line-height:16px;padding:0 10px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}.gw_empty{color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:20px;padding:22px 4px;text-align:center}.gw_err{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.gw_fold{flex:none;cursor:pointer;font:inherit;font-size:12px;line-height:18px;width:22px;height:22px;padding:0;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dsw-alias-label-tertiary);transition:background .12s,color .12s}.gw_fold:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.gw_fold.open{color:var(--dsw-alias-label-primary)}.gw_hintBox{display:block;padding:0;margin:2px 0 6px;text-align:left}.gw_hintText{display:block;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);text-align:left}.gw_hintLine{display:block;padding-left:11px;position:relative;word-break:break-word}.gw_hintLine+.gw_hintLine{margin-top:5px}.gw_hintLine::before{content:'';position:absolute;left:2px;top:9px;width:4px;height:4px;border-radius:50%;background:var(--dsw-alias-label-tertiary)}.gw_summary{flex:1 1 100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3);border-radius:6px;padding:2px 8px;margin-top:2px}.gw_restart{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-3);border-radius:10px;padding:10px 14px}.gw_restartText{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}.gw_restartTitle{font-size:13px;font-weight:600;line-height:20px}.gw_restartWhy{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.gw_btnPrimary{background:var(--dsw-alias-state-business-primary);border-color:var(--dsw-alias-state-business-primary);color:#fff;font-weight:600}.gw_btnPrimary:hover:not(:disabled){opacity:.9}.gw_copyTag{flex:none;font-size:10px;line-height:16px;padding:0 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_copies{margin-bottom:6px}.gw_copiesHead{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}.gw_gh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:8px 12px}.gw_ghMain{display:flex;flex-direction:column;gap:1px;min-width:0}.gw_ghLogin{font-size:13px;line-height:18px;font-weight:600;display:flex;align-items:center;gap:6px}.gw_ghMeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_ghRight{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.gw_ghQ{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.gw_ghQ.low{color:var(--dsw-alias-state-error-primary)}.gw_dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--dsw-alias-label-tertiary)}.gw_dot.on{background:var(--dsw-alias-state-success-primary)}.gw_dot.off{background:var(--dsw-alias-label-tertiary)}.gw_dev{margin-top:6px;border:1px solid var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-3);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.gw_devHead{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.gw_devCode{font-size:22px;line-height:30px;font-weight:700;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;user-select:all;cursor:pointer}.gw_devRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.gw_devHint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}
 .gw_view{display:flex;flex-direction:column;gap:8px;min-width:0}`;
 
     const zh = {
@@ -48,9 +48,6 @@ window.__ModuleLoader__.load({
       statPending: '待确认',
       pending: '待确认',
       wantLabel: '当时的需求：',
-      secDiscovered: '磁盘上有、没人登记过',
-      discoveredHint: '扫描器找到的、但人工清单和下载登记里都没有的项目。出现这一区说明某次下载没有被记录，或者你就想留着自己看。',
-      unlogged: '未登记',
       noRemote: '（无 remote）',
       secMuted: '已屏蔽',
       muteSelected: '屏蔽所选',
@@ -98,6 +95,7 @@ window.__ModuleLoader__.load({
       localBuild: '本机自建',
       workTitle: '作业产出（删了无法重来）',
       alsoAt: '另有克隆：',
+      aliasHint: '同一个仓库在磁盘上还有别的克隆；这一行显示的是其中一份，展开可看其余路径',
       copiesTitle: '本地其他副本',
       copiesHint: '同一插件在磁盘上还有别的副本，这一行显示的是版本最新的那份',
       current: '已最新',
@@ -105,7 +103,7 @@ window.__ModuleLoader__.load({
       loadFailed: '读取失败',
       expand: '展开',
       collapse: '收起',
-      empty: '暂无报告。计划任务每天 09:30 运行，或手动执行 github-watch\\run.bat',
+      empty: '暂无报告。点上方的「扫描」按钮跑一次，或在数据目录里执行 node lib/run.mjs check',
       ghTitle: 'GitHub 账号',
       ghLoggedOut: '未登录',
       ghLogin: '登录',
@@ -152,9 +150,6 @@ window.__ModuleLoader__.load({
       statPending: 'pending',
       pending: 'pending',
       wantLabel: 'wanted:',
-      secDiscovered: 'On disk, never logged',
-      discoveredHint: 'Found by the scanner but absent from both the curated list and the download log. If this section appears, a download went unrecorded — or you meant to keep it untracked.',
-      unlogged: 'unlogged',
       noRemote: '(no remote)',
       secMuted: 'Muted',
       muteSelected: 'Mute selected',
@@ -202,6 +197,7 @@ window.__ModuleLoader__.load({
       localBuild: 'local build',
       workTitle: 'Work output — cannot be re-downloaded',
       alsoAt: 'also cloned at:',
+      aliasHint: 'this repo has other clones on disk; the row shows one of them, expand to see the rest',
       copiesTitle: 'other local copies',
       copiesHint: 'this plugin exists in more than one place on disk; the row shows the newest version',
       current: 'current',
@@ -209,7 +205,7 @@ window.__ModuleLoader__.load({
       loadFailed: 'Failed to load',
       expand: 'more',
       collapse: 'less',
-      empty: 'No report yet. The task runs daily at 09:30, or run github-watch\\run.bat',
+      empty: 'No report yet. Hit Scan above, or run node lib/run.mjs check in the data directory',
       ghTitle: 'GitHub account',
       ghLoggedOut: 'not signed in',
       ghLogin: 'Sign in',
@@ -244,6 +240,9 @@ window.__ModuleLoader__.load({
       if (state === 'muted') return 'muted';
       const status = (row && row.status) || '';
       if (status.indexOf('有更新') >= 0) return 'updated';
+      // Before `最新`: the two can never both match, but the order states the
+      // intent — a patched install is "current with a footnote", not plain current.
+      if (status.indexOf('有本地补丁') >= 0) return 'patched';
       if (status.indexOf('最新') >= 0) return 'current';
       if (status.indexOf('上游有') >= 0) return 'upstream';
       if (status.indexOf('下架') >= 0 || status.indexOf('无上游') >= 0) return 'gone';
@@ -278,6 +277,15 @@ window.__ModuleLoader__.load({
       // keyed by "project#index" so it survives a re-render after refresh, and
       // opening one row must not collapse another.
       const [expanded, setExpanded] = useState({});
+      // Rows deleted during THIS page session, by name. A row whose directory is
+      // gone is history, not a project: it used to sink to the bottom of the
+      // list and stay there forever, so the page never went back to describing
+      // what is actually on disk. Keeping the names here lets the row survive
+      // exactly long enough to show that the deletion worked — and the next time
+      // the page opens this map is empty again, so the row is gone for good.
+      // Declared up here because the list filters read it during render, while
+      // the selection state is declared much further down.
+      const [justRemoved, setJustRemoved] = useState({});
 
       const load = useCallback(async () => {
         setBusy(true);
@@ -419,7 +427,13 @@ window.__ModuleLoader__.load({
       // in "项目" is still in the way, and its presence made the tab counts lie
       // (8 projects of which 1 was parked). Muted rows live in their own tab and
       // nowhere else.
-      const active = (r) => r.state !== 'muted';
+      // Uninstalled rows are treated the same way, with one exception: the ones
+      // deleted in this session stay visible until the page is closed, because
+      // a row that vanishes the instant you click "删除" leaves you unable to
+      // tell a completed deletion from a failed click. Everything else with no
+      // directory behind it is dropped — an uninstall is a decision, and the
+      // list is a description of the disk, not a log of past decisions.
+      const active = (r) => r.state !== 'muted' && (r.state !== 'removed' || Boolean(justRemoved[r.name]));
       const shownProjects = projects.filter(match).filter(active).sort(sink);
       const shownPlugins = plugins.filter(match).filter(active).sort(sink);
 
@@ -526,14 +540,26 @@ window.__ModuleLoader__.load({
             body: JSON.stringify({ names }),
           });
           const out = await res.json();
+          const done = (out.results || []).filter((r) => r.ok);
           const failed = (out.results || []).filter((r) => !r.ok);
-          const freedB = (out.results || []).filter((r) => r.ok)
-            .reduce((n, r) => n + (r.freedBytes || 0), 0);
+          const freedB = done.reduce((n, r) => n + (r.freedBytes || 0), 0);
+          // Remember what actually went, so its row can be shown for the rest of
+          // this page session. `load()` refetches and the row comes back from the
+          // host as `state: 'removed'` — the filter then lets it through only
+          // because its name is in here. Close the page and the evidence is gone
+          // along with it, which is the point.
+          if (done.length) {
+            setJustRemoved((prev) => {
+              const next = { ...prev };
+              for (const r of done) next[r.name] = true;
+              return next;
+            });
+          }
           setNotice(failed.length
-            ? t('deletePartial').replace('{ok}', String((out.results || []).length - failed.length))
+            ? t('deletePartial').replace('{ok}', String(done.length))
                 .replace('{fail}', String(failed.length))
                 .replace('{why}', failed.map((f) => f.error).join('；').slice(0, 160))
-            : t('deleteDone').replace('{n}', String((out.results || []).length))
+            : t('deleteDone').replace('{n}', String(done.length))
                 .replace('{mb}', fmtBytes(freedB)));
           setSelected({});
           load();
@@ -632,6 +658,13 @@ window.__ModuleLoader__.load({
         const origin = r.source || r.kind || '';
         const hasDeps = (r.deps || []).length > 0;
         const hasWork = Boolean(r.work);
+        // A second checkout of the same upstream. It is not a row of its own —
+        // same repo, same upstream, two copies of the bytes — so it lives here,
+        // on the row it duplicates. Without this the copy was simply invisible on
+        // the page once the old "on disk, never logged" section was removed, and
+        // "0.3 MB you could free" became unknowable.
+        const aliasList = (r.aliases || []).filter(Boolean);
+        const hasAliases = aliasList.length > 0;
 
         // One hint line per row. TWO different questions, and the answer to
         // each comes from a different place:
@@ -649,7 +682,7 @@ window.__ModuleLoader__.load({
         const hasHint = Boolean(hintSource);
         // Neither a summary nor a description means there is nothing to show;
         // an empty fold that opens onto nothing is worse than no affordance.
-        const foldable = hasHint || hasDeps || hasWork || (r.copies || []).length > 0;
+        const foldable = hasHint || hasDeps || hasWork || hasAliases || (r.copies || []).length > 0;
         // The size cell is the reason this list exists: sorted by eye, it answers
         // "what is eating the disk". Reported with the dependency total in
         // parentheses because "rea 2.9 GB" is really "535 MB of rea".
@@ -669,10 +702,17 @@ window.__ModuleLoader__.load({
         // turns the payload into a list, and it needs no markup — the text already
         // carries the boundaries.
         const hintLines = hintSource ? hintSource.split(/\r?\n/).filter((s) => s.trim()) : [];
-        const details = open && hasHint
+        const details = open && (hasHint || hasAliases)
           ? h('div', { className: 'gw_depBox' },
-            h('div', { className: 'gw_hintText' },
-              hintLines.map((line, n) => h('div', { className: 'gw_hintLine', key: n }, line))))
+            hasHint
+              ? h('div', { className: 'gw_hintText' },
+                hintLines.map((line, n) => h('div', { className: 'gw_hintLine', key: n }, line)))
+              : null,
+            hasAliases
+              ? h('div', { className: 'gw_aliasBox' },
+                h('div', { className: 'gw_aliasTitle' }, t('alsoAt')),
+                aliasList.map((a, n) => h('div', { className: 'gw_aliasPath', key: 'a' + n, title: a }, a)))
+              : null)
           : null;
 
         // Uninstalled rows cannot be selected: there is nothing left to delete or
@@ -692,6 +732,12 @@ window.__ModuleLoader__.load({
           h('span', { className: 'gw_name' }, r.name),
           r.copies && r.copies.length
             ? h('span', { className: 'gw_copyTag', title: t('copiesHint') }, '+' + r.copies.length)
+            : null,
+          // Same "+N" convention as plugins above, but a different meaning: these
+          // are further clones of the SAME repo, so the number is "how many times
+          // the disk holds this project", not "how many versions are installed".
+          hasAliases
+            ? h('span', { className: 'gw_copyTag', title: t('aliasHint') }, '+' + aliasList.length)
             : null,
           lead ? h('span', { className: 'gw_kind' }, lead) : null,
           h('span', { className: 'gw_status ' + cls }, r.status),
@@ -768,28 +814,12 @@ window.__ModuleLoader__.load({
               ? h('div', { className: 'gw_emptySmall' }, t('noMuted'))
               : h('div', { className: 'gw_list' }, mutedRows.map((r, i) => rowOf(r, i, 'muted'))));
 
-      // Two different kinds of "not curated yet", kept apart on purpose:
-      //   queue      — a session reported it; we know why it was fetched
-      //   discovered — the disk scan found it and nothing reported it; nobody
-      //                knows why. The second is the one that catches a session
-      //                that ignored the logging rule, so it must stay visible.
-      const discovered = (data && data.discovered) || [];
-      const shownDiscovered = discovered.filter((r) => !q || (r.name + ' ' + r.path).toLowerCase().indexOf(q) >= 0);
-
-      const discoveredSection = shownDiscovered.length === 0 ? null : h('div', { className: 'gw_section' },
-        h('div', { className: 'gw_sectHead' },
-          h('span', { className: 'gw_sectTitle gw_discTitle' }, t('secDiscovered')),
-          h('span', { className: 'gw_sectCount' }, shownDiscovered.length)),
-        h('div', { className: 'gw_queueHint' }, t('discoveredHint')),
-        h('div', { className: 'gw_list' }, shownDiscovered.map((r, i) => h('div', { className: 'gw_row gw_disc', key: 'd' + i },
-          h('span', { className: 'gw_dot upstream' }),
-          h('span', { className: 'gw_name' }, r.name),
-          h('span', { className: 'gw_kind' }, r.kind),
-          h('span', { className: 'gw_status upstream' }, t('unlogged')),
-          h('span', { className: 'gw_size' }, fmtMb(r.sizeMb)),
-          r.slug ? h('span', { className: 'gw_slug' }, r.slug) : h('span', { className: 'gw_slug' }, t('noRemote')),
-          r.path ? h('span', { className: 'gw_detail' }, r.path) : null,
-          r.description ? h('span', { className: 'gw_desc' }, r.description) : null))))
+      // A second checkout of an already-listed repo is not a separate project: it
+      // used to appear under "on disk, never logged", which read as "a session
+      // ignored the logging rule" when in fact the repo WAS logged and only the
+      // bytes were duplicated. Dedupe now folds those clones into
+      // `aliases_present` on the row that represents them, so the second copy is
+      // still findable — by opening the row it duplicates, not as a phantom.
 
       // The account this page spends GitHub's quota as. Two distinct states, and
       // they are not the same thing:
@@ -989,7 +1019,7 @@ window.__ModuleLoader__.load({
                 : scan.step ? ' ' + scan.step : '') +
               ' · ' + Math.round((scan.progress || 0) * 100) + '%'))
           : null,
-        h('div', { className: 'gw_view' }, discoveredSection, tabs, tabBody),
+        h('div', { className: 'gw_view' }, tabs, tabBody),
         // The confirm dialog. It exists because the numbers have to be in front
         // of the decision: "delete rea" and "delete 2.9 GB, of which 214 MB is
         // your own analysis output" are not the same request.

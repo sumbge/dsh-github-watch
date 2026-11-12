@@ -9,6 +9,7 @@ Adds a Settings page (设置 → 已下载项目) listing every tracked repo wit
 | | |
 |---|---|
 | **Tabs** | 项目 / 插件 / 已屏蔽 — side by side, no scrolling |
+| **One row per repo** | A second clone of the same upstream is folded into the row that represents it, marked `+1` and listed in the row's detail. The row counts the repo, not the copies |
 | **Sizes** | Per project, showing the project separate from its dependencies and from work output you produced |
 | **Upstream** | `git ls-remote` for clones, the GitHub API for snapshots and releases, `registry.npmjs.org` for npm packages, PyPI for `uv`/`pipx` tools |
 | **Update** | `git pull --ff-only`, refused when the tree is dirty or has no `.git` |
@@ -58,6 +59,19 @@ node lib/run.mjs check       # query upstreams
 The plugin runs these in that order for you — the page's **扫描** button does
 exactly this, and the same pipeline runs after an update. You only need the
 commands above to drive it by hand.
+
+`check` caches its answers for six hours, and refuses the cache the moment any
+local version changes — an upgrade you just did must not keep showing the version
+you had before. A set that contains a failure is a different case: it speaks about
+the network at that second, not about upstream, so it is only reused for sixty
+seconds and the next run retries. `--force` re-asks regardless.
+
+The cache is for runs nobody is watching. Pressing **检查更新** always re-asks
+upstream, because that is what the label says the button does; answering a click
+with a six-hour-old result would be a different question than the one asked. When
+a run does use the cache, the report says so in its own header
+(`生成时间：… （缓存结果，非本次检查）`) and dates it to when the answers were
+fetched, so the page can never claim a check that did not happen.
 
 Where the data lands:
 
@@ -150,7 +164,7 @@ Deletion is real (`rm -rf`), so it is guarded:
 
 - **Two steps.** The confirm dialog names the three kinds of bytes separately — re-downloadable, edited locally, and work output you cannot get back. A single "delete 3.2 GB" hides the only part that matters.
 - **Path allowlist.** `~/Desktop`, `~/Documents`, `~/Downloads`, plus any roots in `DSH_GITHUB_WATCH_ROOTS` — and, for plugins, a package directory directly inside a DSH profile's `node_modules`. A malformed path in `inventory.json` cannot become a delete of `C:\`.
-- **Record before delete.** `watched.json` gets a `removed` entry first, so a delete that fails halfway still leaves evidence of intent.
+- **Record before delete.** `watched.json` gets a `removed` entry first, so a delete that fails halfway still leaves evidence of intent. If `rm` then throws, the entry is rewritten as `remove-failed` with the error and `size_freed_mb: 0` — the attempt stays on record, but it is never read back as a completed deletion.
 - **Mute is not hide.** A muted project stays in its own tab. Hiding it would make "I muted it" and "it vanished" look identical.
 
 ## What the statuses mean
@@ -162,12 +176,67 @@ Deletion is real (`rm -rf`), so it is guarded:
 | 上游有新提交 | Same, for snapshot projects |
 | 上游已下架 | The package no longer exists upstream |
 | 受 Python 版本限制 | Newer versions exist but require a Python the tool's venv does not have |
+| 有本地补丁 | The version string matches what upstream publishes, but the bytes on disk do not. See below |
+| 本地领先 | Local version is higher than any upstream release — self-maintained |
 | 已屏蔽 | You muted it; it is not checked |
-| 已卸载 | You deleted it; recorded in `watched.json` |
+| 已卸载 | You deleted it; recorded in `watched.json`. The row is shown only in the session where you pressed delete — see below |
 | 目录不见了 | Gone from disk with no removal record — someone else deleted it, or it moved |
+| 无上游 | Nothing was asked, because there is nowhere to ask. See below |
 
 The last two are deliberately distinct. Conflating them would make a decision
 indistinguishable from an accident.
+
+### 无上游
+
+This one is a promise about what did *not* happen, so it is worth being precise
+about. A row is 无上游 only when there is no upstream to compare against: a
+directory with no remote, a `@local` package no registry carries, or a project
+you muted. It never means "we asked and got nothing back" — a failed request is
+检查失败, and it says why.
+
+Getting this right took two tries. Which upstream a row is checked against is
+decided by `laneForProject` in `lib/check.mjs`, and the first version read fields
+that only the scanner writes (`installed_from`, `updater`). Rows that arrived from
+`queue.json` do not have those fields, so every one of them fell through to an
+empty probe list and rendered as 无上游 — `DSHgo` and `hyperframes` sat there for
+days while their upstreams had four releases and an npm `latest` respectively.
+The lesson is in the shape of the mistake: a field written by one source was read
+to judge a record written by another. `无上游` is the default that every missed
+path lands in, and it looks exactly like "nothing to report", so the lane decision
+is a pure function with its own tests rather than a chain of `else if`s.
+
+### 已卸载
+
+An uninstall is a decision about the disk, and the list describes the disk. So a
+deleted row is shown for exactly one event: the delete you just performed, in the
+page you performed it in. It stays there — crossed out, with the freed size — so
+that a working delete and a dead button do not look the same. Close the page and
+the name is gone from the session, so the row is gone with it. `watched.json`
+still records the deletion; the list just stops answering a question nobody asked.
+
+The record is written before `rm` runs, which means a delete that throws leaves an
+entry behind describing something that is still on disk. That entry is rewritten
+as `remove-failed` with the error and a freed size of 0, and the page treats only
+`removed` as a deletion. Without that split, `github-mcp-server` reported "已卸载
+· 释放 25 MB" for a directory that was still there — its `.exe` was held open by a
+running MCP child process, so `rm` refused and the claim outlived the failure.
+
+### 有本地补丁
+
+A version number says what upstream called a release; it says nothing about the
+files under `node_modules` today. When the installed copy claims a version the
+registry publishes, that version's tarball is downloaded once and compared
+file-by-file by SHA-256. Every file that differs is named on the row.
+
+This exists because the alternative is two wrong answers: call it "latest" and
+the local edits become invisible; call it "modified" and it reads as a problem
+needing a fix. Neither is true — the install is current *and* carries deliberate
+changes, and the next update will overwrite them.
+
+The comparison only runs where the package manager can produce the published
+artifact (`npm`, and local `file:` tarballs). A `github:` or `link:` install has
+no registry counterpart — its bytes differ from the tarball by construction, so
+the check is skipped instead of reporting every such row as patched.
 
 ## GitHub account
 
@@ -274,24 +343,26 @@ everything else still resolves through the HTTP APIs.
 npm test
 ```
 
-113 tests, no dependencies, no network:
+141 tests, no dependencies, no network:
 
 | File | Covers |
 |---|---|
 | `test/parse.test.mjs` | `parseReport` (every kind, not just the enumerated ones) and `splitBlurb` |
 | `test/pipeline.test.mjs` | the inventory and build steps end to end against a fake disk in a temp directory |
 | `test/routes.test.mjs` | the HTTP endpoints, including that the page paints before the GitHub account has been read |
-| `test/render.test.mjs` | headless renders of `client.js`, so a broken hook order fails here instead of showing a blank page |
-| `test/check.test.mjs` | `probeGit` resolves the default branch instead of assuming `main`, recovers from a stale remembered branch, never reports a failure with nothing after the colon, and every release-notes lane that can say 有更新 publishes its summary onto the row |
+| `test/render.test.mjs` | headless renders of `client.js`, so a broken hook order fails here instead of showing a blank page. Also: an uninstalled row is gone when the page is reopened, stays on screen for the session that deleted it, and a patched install gets its own status class |
+| `test/check.test.mjs` | `probeGit` resolves the default branch instead of assuming `main`, recovers from a stale remembered branch, and never reports a failure with nothing after the colon; `cacheStillDescribes` compares the bare local version rather than the `本地 → 上游` display line, which is the difference between a six-hour cache that works and one that never once hit; `laneForProject` keeps asking upstream about rows that arrived from `queue.json` and not only about rows the scanner recognised; and `versionKey` reads the version out of `v1.3` and `hyperframes@0.9.7 (npx)` instead of calling both of them zero |
 | `test/summary.test.mjs` | `summarizeRelease`: a hard-wrapped English note is joined into paragraphs before it is summarised, sections that are not changes are dropped, a period inside `v0.2.2` or `check.mjs` is not read as a sentence end, and nothing is truncated by length |
 | `test/guard.test.mjs` | every write endpoint refuses a request without the marker header, from a foreign origin, or with a non-JSON body |
-| `test/safety.test.mjs` | `isSafePath`: `..` never escapes, a scan root itself is never deletable, and every root the scanner walks is reachable by the delete guard |
+| `test/safety.test.mjs` | `isSafePath`: `..` never escapes, a scan root itself is never deletable, and every root the scanner walks is reachable by the delete guard. `uninstalledBySlug`: a `remove-failed` attempt is kept on record but is never read back as a completed uninstall |
 | `test/body.test.mjs` | `readJsonBody`: an oversized body is refused instead of hanging the request |
 | `test/util.test.mjs` | `writeJson` is atomic — a reader never sees half a file |
 | `test/size.test.mjs` | `dirSize` is bounded and says when it truncated |
 | `test/fetch.test.mjs` | upstream responses are capped in bytes, including when the server lies about the length |
 | `test/kill.test.mjs` | a timed-out command takes its whole process tree down, detached grandchildren included |
 | `test/npm.test.mjs` | `slugFromRepository` across the shapes npm allows, and that the npm probe asks for one version instead of the full packument |
+| `test/patch.test.mjs` | `patch.mjs` against tarballs built byte by byte in the test: a long path survives the GNU longname record, an identical tree is not patched, one edited file is named, and a file only the install has does not by itself mean patched |
+| `test/scan.test.mjs` | `stepArgs`: the button's `check` step carries `--force` while `inventory`/`build` never do, because only one of the three has a cache to skip — and the step name is never dropped from argv |
 
 They never touch `~/.dsh-github-watch`: helper `isolate()` points
 `DSH_GITHUB_WATCH_DIR` at a fresh temp directory before the step modules are

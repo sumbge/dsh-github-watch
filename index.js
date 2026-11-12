@@ -498,10 +498,30 @@ let scanState = {
  * the interpreter DSH happens to bundle — because there was no way to know which
  * one a machine would have. There is only one Node here, and it is this one.
  */
-function runStep(step) {
+/**
+ * The argv a scan step is spawned with, as data.
+ *
+ * Kept separate from `runStep` so it can be asserted without spawning anything:
+ * whether the button forces a re-check is a two-word decision that decides
+ * whether a click means "ask upstream" or "show me whatever we had", and a
+ * decision that important should be checkable without a 30-second subprocess.
+ */
+export function stepArgs(step, { force = false } = {}) {
+  const args = [join(LIB_DIR, 'run.mjs'), step]
+  // Only `check` has a cache to skip.
+  if (force && step === 'check') args.push('--force')
+  return args
+}
+
+function runStep(step, { force = false } = {}) {
   return new Promise((resolve) => {
     ensureDataDir()
-    const child = spawn(process.execPath, [join(LIB_DIR, 'run.mjs'), step], {
+    // `--force` skips the cache inside `check`. The button that starts this
+    // pipeline is labelled 检查更新, so pressing it has to mean "ask upstream
+    // now" — a person who clicks it and gets a six-hour-old answer has been
+    // told something false about the world. The cache still applies to runs
+    // nobody is watching (a scheduled task, rescanAfterUpdate, a bare CLI call).
+    const child = spawn(process.execPath, stepArgs(step, { force }), {
       cwd: WATCH_DIR,
       windowsHide: true,
       env: { ...process.env },
@@ -550,7 +570,10 @@ function startScan() {
       scanState.step = step
       scanState.stepIndex = i
       scanState.progress = done
-      const res = await runStep(step)
+      // Only `check` has a cache to bypass. `inventory` and `build` re-walk the
+      // disk every time, so they need no flag — and passing one they ignore
+      // would suggest they might not have looked.
+      const res = await runStep(step, { force: step === 'check' })
       scanState.output.push({ step, code: res.code, tail: res.tail })
       // `inventory` and `build` must succeed; `check`'s 1 is an acceptable outcome
       // (some project failed, which the report shows).
@@ -766,7 +789,7 @@ async function readQueue() {
 
 /** The curated registry: which projects and plugins this page shows. */
 async function readInventory() {
-  const empty = { projects: [], plugins: [], tools: [], discovered: [], scannedAt: null }
+  const empty = { projects: [], plugins: [], tools: [], scannedAt: null }
   const raw = await readText(join(WATCH_DIR, 'inventory.json'))
   if (!raw) return empty
   try {
@@ -775,7 +798,6 @@ async function readInventory() {
       projects: Array.isArray(data.projects) ? data.projects : [],
       plugins: Array.isArray(data.plugins) ? data.plugins : [],
       tools: Array.isArray(data.tools) ? data.tools : [],
-      discovered: Array.isArray(data.discovered) ? data.discovered : [],
       scannedAt: data.scanned_at || null,
     }
   } catch {
@@ -1106,7 +1128,24 @@ async function doDelete(name, why = '') {
   try {
     await rm(path, { recursive: true, force: true })
   } catch (err) {
-    return { ok: false, error: `删除失败：${err?.message ?? err}`, record: rec }
+    // The record lands before the bytes so a failed delete is not silent — but
+    // that means the record now says "已卸载" about something still on disk.
+    // Left alone it becomes a lie that outlives the failure: github-mcp-server
+    // kept a locked .exe, the delete threw, and the page went on reporting
+    // "释放 25 MB" for a directory that was still there. Rewrite the record to
+    // say what actually happened, so an interrupted uninstall reads as one.
+    const rec2 = {
+      ...rec,
+      status: 'remove-failed',
+      remove_error: String(err?.message ?? err),
+      size_freed_mb: 0,
+    }
+    try {
+      const again = (await readWatched()).filter((w) => (w.slug || w.name) !== (rec2.slug || rec2.name))
+      again.push(rec2)
+      await writeJson(join(WATCH_DIR, 'watched.json'), again)
+    } catch { /* the error below still reaches the caller */ }
+    return { ok: false, error: `删除失败：${err?.message ?? err}`, record: rec2 }
   }
 
   // Drop it from the curated registry too, so the next scan does not report it
@@ -1323,22 +1362,44 @@ async function updatePlugin(plugin) {
   // Let the profile's own package manager move it. Prefer the bundled pnpm
   // through the bundled node; fall back to PATH for deployments that install
   // it normally.
+  //
+  // `--config.strictDepBuilds=false` is not a nicety, it is what makes any
+  // update possible in this profile. pnpm 11 fails the whole command with
+  // exit 1 and `ERR_PNPM_IGNORED_BUILDS` when *any* other dependency in the
+  // same manifest has a build script pnpm declined to run — here
+  // `dsh-xdpool` ships one, so every unrelated `pnpm add` exited 1 and read
+  // as "update failed" while the package had in fact installed fine.
+  // The flag downgrades that error to a warning; it does NOT approve the
+  // skipped scripts, so nothing extra is executed.
+  const PNPM_ARGS = ['--config.minimumReleaseAge=0', '--config.strictDepBuilds=false']
   let res
   if (existsSync(PNPM_CLI) && existsSync(NODE_EXE)) {
-    res = await runCmd(NODE_EXE, [PNPM_CLI, 'add', target,
-                                  '--config.minimumReleaseAge=0'], 300000, PROFILE_DIR)
+    res = await runCmd(NODE_EXE, [PNPM_CLI, 'add', target, ...PNPM_ARGS], 300000, PROFILE_DIR)
   } else {
-    res = await runCmd('pnpm', ['add', target,
-                                '--config.minimumReleaseAge=0'], 300000, PROFILE_DIR)
+    res = await runCmd('pnpm', ['add', target, ...PNPM_ARGS], 300000, PROFILE_DIR)
   }
   const blob = ((res.out || '') + (res.err || '')).trim()
-  const ok = res.code === 0
+
+  // pnpm streams `Progress: resolved 64, reused 2, …` to stderr, so the first
+  // 300 characters are always progress spam and never the reason. Quoting a
+  // known error code reads far better than a byte prefix of a progress log;
+  // failing that, the tail, which is where pnpm puts its summary.
+  const known = blob.match(/ERR_PNPM_[A-Z_]+[^\n]*/)
+  const reason = known
+    ? known[0].trim()
+    : blob.split('\n').filter((l) => l.trim() && !/^Progress:/.test(l)).slice(-4).join(' ').trim()
+
+  // A tolerated build-script complaint must not read as a failed update: the
+  // package is installed either way. Only a real error keeps ok=false.
+  const onlyIgnoredBuilds = /ERR_PNPM_IGNORED_BUILDS/.test(blob)
+    && !/ERR_PNPM_(?!IGNORED_BUILDS)[A-Z_]+/.test(blob)
+  const ok = res.code === 0 || onlyIgnoredBuilds
   return {
     ok,
     name,
     changed: ok && /\+\s/.test(blob),
     code: res.code,
-    error: ok ? undefined : blob.slice(0, 300) || ('退出码 ' + res.code),
+    error: ok ? undefined : (reason.slice(0, 300) || ('退出码 ' + res.code)),
     output: blob.slice(-400),
     restartRequired: ok,
   }
@@ -1683,6 +1744,29 @@ async function writeJson(path, data) {
   await rename(tmp, path)
 }
 
+/**
+ * The watched.json records that describe a deletion which actually happened.
+ *
+ * Only `removed` counts. `remove-failed` is a record of an attempt: the delete
+ * wrote it before calling `rm`, `rm` threw, and the entry was rewritten to say
+ * so. Reading that as "已卸载" produced the worst kind of row — a crossed-out
+ * line reading "释放 25 MB" sitting over a directory that was still on disk,
+ * with the page asserting a fact the machine contradicts. Keeping the attempt
+ * on record is the point of writing first; presenting it as a completed
+ * deletion is not.
+ *
+ * Exported because the shape of this filter is what the tests pin down.
+ */
+export function uninstalledBySlug(watched) {
+  const out = new Map()
+  for (const w of watched || []) {
+    if (w && w.status === 'removed' && (w.slug || w.name)) {
+      out.set(String(w.slug || w.name).toLowerCase(), w)
+    }
+  }
+  return out
+}
+
 async function snapshot() {
   const [md, reportStat, lastRun, blurbs, inventory, queue, watched] = await Promise.all([
     readText(join(WATCH_DIR, 'report.md')),
@@ -1703,12 +1787,7 @@ async function snapshot() {
   // Without it, "directory gone" is indistinguishable from "check broke", and the
   // page would show ⚠ 检查失败 for a deliberate deletion — the exact confusion
   // this distinction exists to prevent.
-  const removedBySlug = new Map()
-  for (const w of watched) {
-    if (w.status === 'removed' && (w.slug || w.name)) {
-      removedBySlug.set((w.slug || w.name).toLowerCase(), w)
-    }
-  }
+  const removedBySlug = uninstalledBySlug(watched)
 
   // Join status onto the curated rows rather than the other way round. The
   // report is a measurement, inventory.json is the decision about what belongs
@@ -1855,20 +1934,6 @@ async function snapshot() {
     status: t.exists === false ? '文件不存在' : '已安装',
   }))
 
-  // `discovered` is the safety net: a project the scan found on disk that no
-  // curated row reported. It exists because the reporting step depends on another
-  // window's model choosing to follow the rule — if it does not, the page would
-  // otherwise show nothing and the operator could not tell "nothing was
-  // downloaded" from "something was downloaded and missed".
-  const discovered = (inventory.discovered || []).map((d) => ({
-    name: d.name || '',
-    slug: d.slug || '',
-    path: d.path || '',
-    kind: d.kind || 'git',
-    sizeMb: d.sizeMb || 0,
-    description: d.description || '',
-  }))
-
   const counts = report.counts || {}
 
   return {
@@ -1882,8 +1947,6 @@ async function snapshot() {
     projects,
     plugins,
     tools,
-    discovered,
-    discoveredCount: discovered.length,
     // The GitHub account the checker spends its quota as, and the login attempt
     // in flight. The account is read WITHOUT waiting: `ghPeek()` returns whatever
     // is already known and refreshes in the background, because a 1.6 s network

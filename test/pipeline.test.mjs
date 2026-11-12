@@ -33,6 +33,14 @@ write('plain-repo/src/main.js', 'export const x = 1\n')
 // A nested repository inside the checkout must NOT become its own row.
 write('plain-repo/vendor/inner/.git/config', '')
 
+// The same upstream pulled down a second time, deeper in the tree. One repo, not
+// two rows — but the second path must stay reachable from the row it merged into.
+// It carries a working file because a real clone does: `hasContent()` deliberately
+// ignores `.git`, so a checkout holding nothing but a .git directory is an empty
+// stub and gets dropped before the build step ever sees it.
+write('Documents/plain-repo-old/.git/config', '[remote "origin"]\n\turl = https://github.com/example/plain-repo.git\n')
+write('Documents/plain-repo-old/src/main.js', 'export const x = 1\n')
+
 // A downloaded release binary: no .git, no manifest, only the sidecar record.
 write('Programs/tool-x/tool-x.exe', 'MZ')
 write('Programs/tool-x/.dsh-source.json', JSON.stringify({
@@ -98,7 +106,7 @@ test('the build step folds the scan into the inventory the page reads', async ()
   const data = JSON.parse(readFileSync(out, 'utf8'))
   assert.deepEqual(
     Object.keys(data),
-    ['projects', 'plugins', 'tools', 'discovered', 'scanned_at', 'generated_from'],
+    ['projects', 'plugins', 'tools', 'scanned_at', 'generated_from'],
     'the top-level shape is what the host half keys off',
   )
   assert.ok(Array.isArray(data.projects))
@@ -109,6 +117,30 @@ test('the build step folds the scan into the inventory the page reads', async ()
   // version for a hand-downloaded binary.
   const tool = data.projects.find((p) => p.name === 'tool-x')
   assert.equal(tool.installed_from.startsWith('https://github.com/example/tool-x/releases/'), true)
+})
+
+test('a second clone of one upstream is a copy on the row, not a second row', async () => {
+  const data = JSON.parse(readFileSync(join(box.dir, 'inventory.json'), 'utf8'))
+  const rows = data.projects.filter((p) => p.slug === 'example/plain-repo')
+  assert.equal(rows.length, 1, 'the same repo was listed twice: ' + rows.map((r) => r.path).join(' , '))
+
+  const row = rows[0]
+  // The row must not silently be the only copy the reader can find. Before this
+  // the loser clone was reported in a section headed "on disk, never logged",
+  // which described the same registered repo as if nobody had logged it.
+  assert.deepEqual(
+    row.aliases_present.length,
+    1,
+    'the merged clone has to stay reachable from the row: ' + JSON.stringify(row.aliases_present),
+  )
+  assert.ok(
+    row.aliases_present[0].endsWith('plain-repo-old'),
+    'the wrong path was recorded as the copy: ' + row.aliases_present[0],
+  )
+  assert.ok(
+    row.aliases_present.every((a) => a !== row.path),
+    'the row listed itself among its own copies',
+  )
 })
 
 test('the build step preserves a mute across a rebuild', async () => {

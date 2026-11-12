@@ -26,7 +26,6 @@ writeFileSync(join(box.dir, 'inventory.json'), JSON.stringify({
   projects: [{ name: 'bun', kind: 'npm', version: '1.4.4', path: 'C:/fake/bun', exists: true }],
   plugins: [],
   tools: [],
-  discovered: [],
   scanned_at: '2026-11-01T18:00:00+08:00',
 }), 'utf8')
 
